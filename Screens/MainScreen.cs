@@ -14,10 +14,12 @@ internal class MainScreen : ScreenObject
     {
         // Create a console for the controls
         _controlsConsole = new ControlsConsole(GameSettings.GAME_WIDTH, GameSettings.GAME_HEIGHT);
+        _controlsConsole.Surface.DefaultForeground = GameSettings.THEME_FOREGROUND;
         _controlsConsole.Surface.DefaultBackground = GameSettings.THEME_BACKGROUND;
+        _controlsConsole.Clear();
         
         // Print the welcome message
-        _controlsConsole.Print(0, 0, "Welcome to WonderGame. Type 'help' for a list of commands.", GameSettings.THEME_FOREGROUND);
+        _controlsConsole.Print(0, 0, "Welcome to WonderGame. Type 'help' for a list of commands.");
         
         // Create the input box
         var inputBox = new TextBox(GameSettings.GAME_WIDTH - 2)
@@ -32,7 +34,7 @@ internal class MainScreen : ScreenObject
                 string input = textBox.Text;
 
                 // Process input here
-                _controlsConsole.Print(0, 10, $"> {input}", GameSettings.THEME_FOREGROUND);
+                _controlsConsole.Print(0, 10, $"> {input}");
 
                 textBox.Text = "";
             }
