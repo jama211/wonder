@@ -3,115 +3,131 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using System.Text;
+using WonderGame.Core;
 
-namespace WonderGame.Screens;
-
-public class MainScreen : IScreen
+namespace WonderGame.Screens
 {
-    private readonly SpriteFont _font;
-    private readonly List<string> _history = new();
-    private readonly StringBuilder _currentInput = new();
-    private KeyboardState _previousKeyboardState;
-
-    private double _cursorTimer;
-    private bool _cursorVisible;
-
-    public MainScreen(SpriteFont font, GameWindow window)
+    // A new interface for screens that can receive text input.
+    public interface ITextInputReceiver
     {
-        _font = font;
-        _history.Add("Welcome to WonderGame. Type 'help' for a list of commands.");
-        _previousKeyboardState = Keyboard.GetState();
-        window.TextInput += TextInputHandler;
+        void OnTextInput(char character);
+        void OnBackspace();
+        void OnEnter();
     }
 
-    private void TextInputHandler(object? sender, TextInputEventArgs e)
+    public class MainScreen : IScreen, ITextInputReceiver
     {
-        if (e.Character != '\r' && e.Character != '\b')
-        {
-            _currentInput.Append(e.Character);
-        }
-    }
-    
-    public void Update(GameTime gameTime)
-    {
-        HandleInput();
+        private readonly SpriteFont _font;
+        private readonly Color _themeForeground;
+        private readonly List<string> _history = new();
+        private readonly StringBuilder _currentInput = new();
+        private KeyboardState _previousKeyboardState;
 
-        _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
-        if (_cursorTimer > 0.5)
-        {
-            _cursorTimer = 0;
-            _cursorVisible = !_cursorVisible;
-        }
-    }
+        private double _cursorTimer;
+        private bool _cursorVisible;
 
-    public void Draw(SpriteBatch spriteBatch)
-    {
-        float yPos = 10;
-        foreach (var line in _history)
+        public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
-            spriteBatch.DrawString(_font, line, new Vector2(10, yPos), Color.Green);
-            yPos += 20;
+            _font = font;
+            _themeForeground = themeForeground;
+            _history.Add("Welcome to WonderGame. Type 'help' for a list of commands.");
+            _previousKeyboardState = Keyboard.GetState();
         }
 
-        var inputPrompt = $"> {_currentInput}";
-        spriteBatch.DrawString(_font, inputPrompt, new Vector2(10, yPos), Color.Green);
-
-        if (_cursorVisible)
+        public void OnTextInput(char character)
         {
-            var cursorPosition = _font.MeasureString(inputPrompt);
-            spriteBatch.DrawString(_font, "_", new Vector2(10 + cursorPosition.X, yPos), Color.Green);
+            _currentInput.Append(character);
         }
-    }
 
-    private void HandleInput()
-    {
-        var keyboardState = Keyboard.GetState();
-
-        if (keyboardState.IsKeyDown(Keys.Enter) && !_previousKeyboardState.IsKeyDown(Keys.Enter))
-        {
-            _history.Add($"> {_currentInput}");
-            ProcessCommand(_currentInput.ToString());
-            _currentInput.Clear();
-        }
-        else if (keyboardState.IsKeyDown(Keys.Back) && !_previousKeyboardState.IsKeyDown(Keys.Back))
+        public void OnBackspace()
         {
             if (_currentInput.Length > 0)
             {
                 _currentInput.Remove(_currentInput.Length - 1, 1);
             }
         }
-        else if (keyboardState.IsKeyDown(Keys.Tab) && !_previousKeyboardState.IsKeyDown(Keys.Tab))
+
+        public void OnEnter()
         {
-            _currentInput.Append("    ");
+            var command = _currentInput.ToString();
+            _history.Add($"> {command}");
+            ProcessCommand(command);
+            _currentInput.Clear();
         }
 
-        _previousKeyboardState = keyboardState;
-    }
-    
-    private void ProcessCommand(string input)
-    {
-        var command = input.ToLowerInvariant().Trim();
-
-        if (string.IsNullOrWhiteSpace(command)) return;
-
-        switch (command)
+        public void Update(GameTime gameTime)
         {
-            case "help":
-                _history.Add("Available commands:");
-                _history.Add("  help  - Shows this help message.");
-                _history.Add("  clear - Clears the screen.");
-                _history.Add("  exit  - Exits the game.");
-                break;
-            case "exit":
-                // This is a bit of a hack for now. A proper event system would be better.
-                System.Environment.Exit(0);
-                break;
-            case "clear":
-                _history.Clear();
-                break;
-            default:
-                _history.Add($"Unknown command: '{command}'");
-                break;
+            // Handle non-text input like Tab, which isn't captured by the TextInput event
+            HandleSpecialKeys();
+
+            _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
+            if (_cursorTimer > 0.5)
+            {
+                _cursorTimer = 0;
+                _cursorVisible = !_cursorVisible;
+            }
+        }
+
+        public void Draw(GameTime gameTime)
+        {
+            float yPos = 10;
+            // Use the lineHeight from the font for consistent spacing
+            float lineHeight = _font.LineSpacing;
+
+            foreach (var line in _history)
+            {
+                Global.SpriteBatch?.DrawString(_font, line, new Vector2(10, yPos), _themeForeground);
+                yPos += lineHeight;
+            }
+
+            var inputPrompt = $"> {_currentInput}";
+            Global.SpriteBatch?.DrawString(_font, inputPrompt, new Vector2(10, yPos), _themeForeground);
+
+            if (_cursorVisible)
+            {
+                var cursorX = _font.MeasureString(inputPrompt).X;
+                Global.SpriteBatch?.DrawString(_font, "_", new Vector2(10 + cursorX, yPos), _themeForeground);
+            }
+        }
+
+        private void HandleSpecialKeys()
+        {
+            var keyboardState = Keyboard.GetState();
+            
+            // Tab is not a character, so handle it separately
+            if (keyboardState.IsKeyDown(Keys.Tab) && !_previousKeyboardState.IsKeyDown(Keys.Tab))
+            {
+                _currentInput.Append("    ");
+            }
+            
+            _previousKeyboardState = keyboardState;
+        }
+
+        private void ProcessCommand(string input)
+        {
+            var command = input.ToLowerInvariant().Trim();
+
+            if (string.IsNullOrWhiteSpace(command)) return;
+
+            switch (command)
+            {
+                case "help":
+                    _history.Add("Available commands:");
+                    _history.Add("  help  - Shows this help message.");
+                    _history.Add("  clear - Clears the screen.");
+                    _history.Add("  exit  - Exits the game.");
+                    break;
+                case "exit":
+                    // A proper event system would be better, but this works for now.
+                    System.Environment.Exit(0);
+                    break;
+                case "clear":
+                    _history.Clear();
+                    break;
+                default:
+                    _history.Add($"Unknown command: '{command}'");
+                    break;
+            }
         }
     }
 } 

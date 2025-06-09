@@ -2,16 +2,20 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using WonderGame.Screens;
+using WonderGame.Core;
 
 namespace WonderGame;
 
 public class Program : Game
 {
     private GraphicsDeviceManager _graphics;
-    private SpriteBatch _spriteBatch = null!;
-    private SpriteFont _font = null!;
+    private SpriteBatch? _spriteBatch;
+    private SpriteFont? _font;
+    private IScreen? _currentScreen;
 
-    private IScreen _currentScreen = null!;
+    // Define the theme colors
+    private static readonly Color THEME_BACKGROUND = new Color(20, 20, 20); // Dark gray
+    private static readonly Color THEME_FOREGROUND = new Color(0, 255, 128); // Bright green
 
     public Program()
     {
@@ -22,17 +26,46 @@ public class Program : Game
 
     protected override void Initialize()
     {
-        Window.Title = "WonderGame";
         base.Initialize();
+        Window.TextInput += HandleTextInput;
     }
 
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+        Global.SpriteBatch = _spriteBatch;
+
         _font = Content.Load<SpriteFont>("DefaultFont");
-        
-        // Start with the boot screen
-        _currentScreen = new BootScreen(_font, GraphicsDevice);
+
+        _currentScreen = new BootScreen(GraphicsDevice, _font, THEME_FOREGROUND);
+        // Subscribe to the boot sequence completion event
+        ((BootScreen)_currentScreen).OnBootSequenceComplete += HandleBootSequenceComplete;
+    }
+
+    private void HandleBootSequenceComplete()
+    {
+        if (_font == null) return; // Null check for safety
+        // Switch to the main screen
+        _currentScreen = new MainScreen(GraphicsDevice, _font, THEME_BACKGROUND, THEME_FOREGROUND);
+    }
+
+    private void HandleTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (_currentScreen is ITextInputReceiver inputReceiver)
+        {
+            switch (e.Character)
+            {
+                case '\b': // Backspace
+                    inputReceiver.OnBackspace();
+                    break;
+                case '\r': // Enter
+                    inputReceiver.OnEnter();
+                    break;
+                default:
+                    inputReceiver.OnTextInput(e.Character);
+                    break;
+            }
+        }
     }
 
     protected override void Update(GameTime gameTime)
@@ -40,24 +73,21 @@ public class Program : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
-        _currentScreen.Update(gameTime);
-
-        // Check for screen transition
-        if (_currentScreen is BootScreen bootScreen && bootScreen.IsComplete)
-        {
-            _currentScreen = new MainScreen(_font, Window);
-        }
+        _currentScreen?.Update(gameTime);
 
         base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(Color.Black);
+        GraphicsDevice.Clear(THEME_BACKGROUND);
 
-        _spriteBatch.Begin();
-        _currentScreen.Draw(_spriteBatch);
-        _spriteBatch.End();
+        if (_spriteBatch != null)
+        {
+            _spriteBatch.Begin();
+            _currentScreen?.Draw(gameTime);
+            _spriteBatch.End();
+        }
 
         base.Draw(gameTime);
     }
@@ -65,9 +95,10 @@ public class Program : Game
 
 public static class Launcher
 {
-    public static void Main()
+    [System.STAThread]
+    static void Main()
     {
-        using var game = new Program();
-        game.Run();
+        using (var game = new Program())
+            game.Run();
     }
 } 

@@ -6,5 +6,5 @@ namespace WonderGame.Screens;
 public interface IScreen
 {
     void Update(GameTime gameTime);
-    void Draw(SpriteBatch spriteBatch);
+    void Draw(GameTime gameTime);
 } 

@@ -1,74 +1,91 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using WonderGame.Core;
 
 namespace WonderGame.Screens;
 
 public class BootScreen : IScreen
 {
-    private readonly SpriteFont _font;
-    private readonly GraphicsDevice _graphicsDevice;
-    private double _timer;
-    private int _bootMessageIndex;
-    public bool IsComplete { get; private set; }
+    // Configuration for line display speed and pauses
+    private const float MIN_LINE_SPEED_SECONDS = 0.001f;
+    private const float LINE_SPEED_VARIABILITY_SECONDS = 0.03f;
+    private const float CHANCE_OF_LONG_PAUSE = 0.015f; // 1.5% chance
+    private const float LONG_PAUSE_MIN_SECONDS = 0.2f;
+    private const float LONG_PAUSE_VARIABILITY_SECONDS = 0.3f;
+    
+    private readonly TextRenderer _textRenderer;
+    private readonly List<string> _bootMessages;
+    private readonly Random _random = new();
+    private float _timer;
+    private int _currentLine;
+    private float _currentLineTime;
 
-    private readonly string[] _bootMessages;
-    private const double TimePerLine = 0.01;
+    public event Action? OnBootSequenceComplete;
 
-    public BootScreen(SpriteFont font, GraphicsDevice graphicsDevice)
+    public BootScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeForeground)
     {
-        _font = font;
-        _graphicsDevice = graphicsDevice;
+        _textRenderer = new TextRenderer(graphicsDevice, font, themeForeground);
+        _bootMessages = LoadBootMessages("Data/boot_sequence.txt");
+        _textRenderer.SetLines(_bootMessages);
 
-        var lines = File.ReadAllLines("Data/boot_sequence.txt");
-        for (int i = 0; i < lines.Length; i++)
+        _timer = 0f;
+        _currentLine = 0;
+        SetNextLineTime();
+    }
+
+    private void SetNextLineTime()
+    {
+        if (_random.NextDouble() < CHANCE_OF_LONG_PAUSE)
         {
-            lines[i] = lines[i].Replace("\t", "    ");
+            // Introduce a long, dramatic pause
+            _currentLineTime = LONG_PAUSE_MIN_SECONDS + (float)_random.NextDouble() * LONG_PAUSE_VARIABILITY_SECONDS;
         }
-        _bootMessages = lines;
+        else
+        {
+            // Set a normal, very fast random time
+            _currentLineTime = MIN_LINE_SPEED_SECONDS + (float)_random.NextDouble() * LINE_SPEED_VARIABILITY_SECONDS;
+        }
+    }
+
+    private List<string> LoadBootMessages(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            return new List<string>(File.ReadAllLines(filePath));
+        }
+        
+        Console.WriteLine($"Error: Boot sequence file not found at {filePath}");
+        return new List<string> { "Error: Boot sequence file not found." };
     }
 
     public void Update(GameTime gameTime)
     {
-        if (IsComplete) return;
+        if (_currentLine >= _bootMessages.Count) return;
 
-        _timer += gameTime.ElapsedGameTime.TotalSeconds;
-        if (_timer > TimePerLine)
+        _timer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+        // Process multiple lines in one frame if enough time has passed
+        while (_timer >= _currentLineTime)
         {
-            _timer = 0;
-            if (_bootMessageIndex < _bootMessages.Length)
+            _timer -= _currentLineTime;
+            _currentLine++;
+            SetNextLineTime();
+
+            if (_currentLine >= _bootMessages.Count)
             {
-                _bootMessageIndex++;
-            }
-            else
-            {
-                IsComplete = true;
+                OnBootSequenceComplete?.Invoke();
+                break; // Exit loop, sequence is complete
             }
         }
     }
 
-    public void Draw(SpriteBatch spriteBatch)
+    public void Draw(GameTime gameTime)
     {
-        var lineHeight = _font.LineSpacing;
-        var visibleLines = _graphicsDevice.Viewport.Height / lineHeight;
-
-        var startLine = 0;
-        if (_bootMessageIndex >= visibleLines)
-        {
-            startLine = _bootMessageIndex - visibleLines;
-            if (startLine >= _bootMessages.Length)
-            {
-                startLine = _bootMessages.Length - visibleLines;
-            }
-        }
-
-        var endLine = Math.Min(_bootMessageIndex, _bootMessages.Length);
-
-        for (int i = startLine; i < endLine; i++)
-        {
-            var y = 10 + (i - startLine) * lineHeight;
-            spriteBatch.DrawString(_font, _bootMessages[i], new Vector2(10, y), Color.Green);
-        }
+        // The TextRenderer now handles everything: clearing the screen is done
+        // in the main Program.cs, and the SpriteBatch is handled globally.
+        _textRenderer.Draw(_currentLine);
     }
 } 
