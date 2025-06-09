@@ -80,6 +80,10 @@ public class MainScreen : IScreen
                 _currentInput.Remove(_currentInput.Length - 1, 1);
             }
         }
+        else if (keyboardState.IsKeyDown(Keys.Tab) && !_previousKeyboardState.IsKeyDown(Keys.Tab))
+        {
+            _currentInput.Append("    ");
+        }
 
         _previousKeyboardState = keyboardState;
     }

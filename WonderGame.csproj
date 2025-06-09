@@ -22,4 +22,10 @@
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Data\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project> 

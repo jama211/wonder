@@ -32,7 +32,7 @@ public class Program : Game
         _font = Content.Load<SpriteFont>("DefaultFont");
         
         // Start with the boot screen
-        _currentScreen = new BootScreen(_font);
+        _currentScreen = new BootScreen(_font, GraphicsDevice);
     }
 
     protected override void Update(GameTime gameTime)
