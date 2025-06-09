@@ -1,49 +1,113 @@
-using SadConsole;
-using SadConsole.UI;
-using SadConsole.UI.Controls;
-using WonderGame.Core;
-using SadRogue.Primitives;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using System.Collections.Generic;
+using System.Text;
 
 namespace WonderGame.Screens;
 
-internal class MainScreen : ScreenObject
+public class MainScreen : IScreen
 {
-    private readonly ControlsConsole _controlsConsole;
+    private readonly SpriteFont _font;
+    private readonly List<string> _history = new();
+    private readonly StringBuilder _currentInput = new();
+    private KeyboardState _previousKeyboardState;
 
-    public MainScreen()
+    private double _cursorTimer;
+    private bool _cursorVisible;
+
+    public MainScreen(SpriteFont font, GameWindow window)
     {
-        // Create a console for the controls
-        _controlsConsole = new ControlsConsole(GameSettings.GAME_WIDTH, GameSettings.GAME_HEIGHT);
-        _controlsConsole.Surface.DefaultForeground = GameSettings.THEME_FOREGROUND;
-        _controlsConsole.Surface.DefaultBackground = GameSettings.THEME_BACKGROUND;
-        _controlsConsole.Clear();
-        
-        // Print the welcome message
-        _controlsConsole.Print(0, 0, "Welcome to WonderGame. Type 'help' for a list of commands.");
-        
-        // Create the input box
-        var inputBox = new TextBox(GameSettings.GAME_WIDTH - 2)
+        _font = font;
+        _history.Add("Welcome to WonderGame. Type 'help' for a list of commands.");
+        _previousKeyboardState = Keyboard.GetState();
+        window.TextInput += TextInputHandler;
+    }
+
+    private void TextInputHandler(object? sender, TextInputEventArgs e)
+    {
+        if (e.Character != '\r' && e.Character != '\b')
         {
-            Position = new Point(1, GameSettings.GAME_HEIGHT - 2),
-        };
-        
-        inputBox.KeyPressed += (sender, args) =>
+            _currentInput.Append(e.Character);
+        }
+    }
+    
+    public void Update(GameTime gameTime)
+    {
+        HandleInput();
+
+        _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
+        if (_cursorTimer > 0.5)
         {
-            if (sender is TextBox textBox && args.Key.Key == SadConsole.Input.Keys.Enter)
+            _cursorTimer = 0;
+            _cursorVisible = !_cursorVisible;
+        }
+    }
+
+    public void Draw(SpriteBatch spriteBatch)
+    {
+        float yPos = 10;
+        foreach (var line in _history)
+        {
+            spriteBatch.DrawString(_font, line, new Vector2(10, yPos), Color.Green);
+            yPos += 20;
+        }
+
+        var inputPrompt = $"> {_currentInput}";
+        spriteBatch.DrawString(_font, inputPrompt, new Vector2(10, yPos), Color.Green);
+
+        if (_cursorVisible)
+        {
+            var cursorPosition = _font.MeasureString(inputPrompt);
+            spriteBatch.DrawString(_font, "_", new Vector2(10 + cursorPosition.X, yPos), Color.Green);
+        }
+    }
+
+    private void HandleInput()
+    {
+        var keyboardState = Keyboard.GetState();
+
+        if (keyboardState.IsKeyDown(Keys.Enter) && !_previousKeyboardState.IsKeyDown(Keys.Enter))
+        {
+            _history.Add($"> {_currentInput}");
+            ProcessCommand(_currentInput.ToString());
+            _currentInput.Clear();
+        }
+        else if (keyboardState.IsKeyDown(Keys.Back) && !_previousKeyboardState.IsKeyDown(Keys.Back))
+        {
+            if (_currentInput.Length > 0)
             {
-                string input = textBox.Text;
-
-                // Process input here
-                _controlsConsole.Print(0, 10, $"> {input}");
-
-                textBox.Text = "";
+                _currentInput.Remove(_currentInput.Length - 1, 1);
             }
-        };
-        
-        _controlsConsole.Controls.Add(inputBox);
-        _controlsConsole.IsFocused = true;
-        inputBox.IsFocused = true;
+        }
 
-        Children.Add(_controlsConsole);
+        _previousKeyboardState = keyboardState;
+    }
+    
+    private void ProcessCommand(string input)
+    {
+        var command = input.ToLowerInvariant().Trim();
+
+        if (string.IsNullOrWhiteSpace(command)) return;
+
+        switch (command)
+        {
+            case "help":
+                _history.Add("Available commands:");
+                _history.Add("  help  - Shows this help message.");
+                _history.Add("  clear - Clears the screen.");
+                _history.Add("  exit  - Exits the game.");
+                break;
+            case "exit":
+                // This is a bit of a hack for now. A proper event system would be better.
+                System.Environment.Exit(0);
+                break;
+            case "clear":
+                _history.Clear();
+                break;
+            default:
+                _history.Add($"Unknown command: '{command}'");
+                break;
+        }
     }
 } 

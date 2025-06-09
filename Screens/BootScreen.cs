@@ -1,17 +1,17 @@
-using SadConsole;
-using SadConsole.Components;
-using WonderGame.Core;
-using SadRogue.Primitives;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
 
 namespace WonderGame.Screens;
 
-internal class BootScreen : SadConsole.ScreenObject
+public class BootScreen : IScreen
 {
-    private readonly SadConsole.Console _console;
-    private readonly SadConsole.Components.Timer _bootTimer;
+    private readonly SpriteFont _font;
+    private double _timer;
     private int _bootMessageIndex;
+    public bool IsComplete { get; private set; }
 
-    private readonly string[] _bootMessages =
+    private static readonly string[] BootMessages =
     {
         "INITIALIZING...",
         "LOADING KERNEL...",
@@ -23,32 +23,35 @@ internal class BootScreen : SadConsole.ScreenObject
         ""
     };
 
-    public BootScreen()
+    public BootScreen(SpriteFont font)
     {
-        _console = new SadConsole.Console(GameSettings.GAME_WIDTH, GameSettings.GAME_HEIGHT);
-        _console.Surface.DefaultForeground = GameSettings.THEME_FOREGROUND;
-        _console.Surface.DefaultBackground = GameSettings.THEME_BACKGROUND;
-        _console.Clear();
-        Children.Add(_console);
-
-        _bootTimer = new SadConsole.Components.Timer(TimeSpan.FromSeconds(0.5));
-        _bootTimer.TimerElapsed += (timer, e) => PrintNextBootMessage();
-        _console.SadComponents.Add(_bootTimer);
+        _font = font;
     }
 
-    private void PrintNextBootMessage()
+    public void Update(GameTime gameTime)
     {
-        if (_bootMessageIndex < _bootMessages.Length)
+        if (IsComplete) return;
+
+        _timer += gameTime.ElapsedGameTime.TotalSeconds;
+        if (_timer > 0.25)
         {
-            _console.Cursor.Position = new Point(0, _bootMessageIndex);
-            _console.Cursor.Print(_bootMessages[_bootMessageIndex]);
-            _bootMessageIndex++;
+            _timer = 0;
+            if (_bootMessageIndex < BootMessages.Length - 1)
+            {
+                _bootMessageIndex++;
+            }
+            else
+            {
+                IsComplete = true;
+            }
         }
-        else
+    }
+
+    public void Draw(SpriteBatch spriteBatch)
+    {
+        for (int i = 0; i <= _bootMessageIndex; i++)
         {
-            _bootTimer.Stop();
-            SadConsole.Game.Instance.Screen = new MainScreen();
-            SadConsole.Game.Instance.DestroyDefaultStartingConsole();
+            spriteBatch.DrawString(_font, BootMessages[i], new Vector2(10, 10 + i * 20), Color.Green);
         }
     }
 } 
