@@ -18,6 +18,10 @@ internal static class Program
             .ConfigureFonts(true);
 
         Game.Create(gameStartup);
+        Game.Instance.OnStart = () => {
+            Game.Instance.Screen = new BootScreen();
+            Game.Instance.DestroyDefaultStartingConsole();
+        };
         Game.Instance.Run();
         Game.Instance.Dispose();
     }
