@@ -26,8 +26,9 @@ internal class BootScreen : SadConsole.ScreenObject
     public BootScreen()
     {
         _console = new SadConsole.Console(GameSettings.GAME_WIDTH, GameSettings.GAME_HEIGHT);
-        _console.Surface.Fill(GameSettings.THEME_BACKGROUND, GameSettings.THEME_BACKGROUND, 0);
         _console.Surface.DefaultForeground = GameSettings.THEME_FOREGROUND;
+        _console.Surface.DefaultBackground = GameSettings.THEME_BACKGROUND;
+        _console.Clear();
         Children.Add(_console);
 
         _bootTimer = new SadConsole.Components.Timer(TimeSpan.FromSeconds(0.5));
