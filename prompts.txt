@@ -11,3 +11,16 @@ yo. we're back.  so, stage 2 is I want the game to seemlessly transition from a 
 - Add a new command called look which should return a description of the room, make sure there's some stuff in there like a door, a table, a fridge, I dunno a few other things whatever you feel like - and ask the user if they would like to "look harder"
 - The next stage is to add a command "look harder" which when they do so we transition to another screen, contained within a new screen file, which will be an isometric view made entirely of ascii characters, where the player is an @ symbol (a reference to the mines of moria) and all the objects are placed in the room - but the objects are made of the word that describes them. E.g, to represent a bed, you'd just have the word bed somewhere on the screen. The arrow keys (or WASD) will walk the player around the room. try and represent the floor and the walls of the room with dots and lines or whatever, but have the door be the represented by the word door (but vertical, of course). 
 - Make sure your player collides with worded objects 
+
+...
+
+I'd like a few refinements: 
+- Pressing escape in isometric view should return you to the text prompt screen
+- Some simple instructtions at the top of the screen in isometric view should tell you that you can press escape to go back to the other view, and that you can press E to interact 
+- if I'm colliding with an object such as a table, I should still be able to move in directions other than towards it, so I can "slide" along the outside of it 
+- The door should be at the edge of the room somewhere, as doors are usually on walls 
+- Make the text that comprises the objects in the room larger to match the shape of the object, i.e. the table should be taller to make the word TABLE more square 
+- dots for the floot shouldn't show through named objects 
+- the lightglobe should exist in the room 
+- add some more things in the room for fun, something silly along with some normal things 
+- The player should collide with the walls so they cannot walk outside the room bounds 

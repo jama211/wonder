@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using WonderGame.Core;
 
 namespace WonderGame.Screens
 {
@@ -12,12 +14,14 @@ namespace WonderGame.Screens
         public string Name { get; }
         public Vector2 Position { get; }
         public Rectangle BoundingBox { get; }
+        public Vector2 Scale { get; }
 
-        public WorldObject(string name, Vector2 position, SpriteFont font)
+        public WorldObject(string name, Vector2 position, SpriteFont font, Vector2? scale = null)
         {
             Name = name;
             Position = position;
-            var size = font.MeasureString(name);
+            Scale = scale ?? Vector2.One;
+            var size = font.MeasureString(name) * Scale;
             BoundingBox = new Rectangle((int)position.X, (int)position.Y, (int)size.X, (int)size.Y);
         }
     }
@@ -29,52 +33,54 @@ namespace WonderGame.Screens
         private readonly Color _themeBackground;
         
         private Vector2 _playerPosition;
-        private readonly List<WorldObject> _worldObjects;
+        private readonly List<WorldObject> _worldObjects = new();
+        private readonly List<Rectangle> _collisionRects = new();
 
-        private readonly List<string> _roomLayout;
-        private readonly WorldObject _door;
+        private IScreen? _nextScreen;
+        private readonly GraphicsDevice _graphicsDevice;
 
         public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
+            _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
             
             _playerPosition = new Vector2(250, 200); // Starting position
 
-            // Define objects and their positions
-            _worldObjects = new List<WorldObject>
-            {
-                new WorldObject("TABLE", new Vector2(300, 250), _font),
-                new WorldObject("FRIDGE", new Vector2(500, 150), _font)
-            };
+            // Define objects, their positions, and scales
+            _worldObjects.Add(new WorldObject("T\nA\nB\nL\nE", new Vector2(300, 220), _font, new Vector2(2.5f, 1.5f))); // Stretched
+            _worldObjects.Add(new WorldObject("FRIDGE", new Vector2(500, 150), _font));
+            _worldObjects.Add(new WorldObject("LIGHTBULB", new Vector2(350, 80), _font, new Vector2(0.8f, 0.8f))); // Scaled down
+            _worldObjects.Add(new WorldObject("BANANA", new Vector2(200, 350), _font));
+            var door = new WorldObject("D\nO\nO\nR", new Vector2(690, 200), _font);
+            _worldObjects.Add(door);
 
-            // Define the visual layout of the room
-            _roomLayout = new List<string>
-            {
-                "------------------------------------------------------------",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "|..........................................................|",
-                "------------------------------------------------------------"
-            };
+            // Create walls for collision based on the dot layout
+            var wallTop = new Rectangle(110, 110, 600, 10);
+            var wallBottom = new Rectangle(110, 420, 600, 10);
+            var wallLeft = new Rectangle(110, 110, 10, 320);
+            var wallRight = new Rectangle(700, 110, 10, 320);
             
-            _door = new WorldObject("D\nO\nO\nR", new Vector2(600, 200), _font);
-            _worldObjects.Add(_door);
+            _collisionRects.AddRange(new[] { wallTop, wallBottom, wallLeft, wallRight });
+            _collisionRects.AddRange(_worldObjects.Select(o => o.BoundingBox));
         }
         
-        public IScreen? GetNextScreen() => null; // No transitions from this screen yet
+        public IScreen? GetNextScreen() => _nextScreen;
 
         public void Update(GameTime gameTime)
         {
             var keyboardState = Keyboard.GetState();
+
+            // Return to main screen on ESC
+            if (keyboardState.IsKeyDown(Keys.Escape))
+            {
+                _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                return;
+            }
+
             var moveDirection = Vector2.Zero;
-            const float speed = 200f; // Pixels per second
+            const float speed = 200f;
 
             if (keyboardState.IsKeyDown(Keys.W) || keyboardState.IsKeyDown(Keys.Up)) moveDirection.Y -= 1;
             if (keyboardState.IsKeyDown(Keys.S) || keyboardState.IsKeyDown(Keys.Down)) moveDirection.Y += 1;
@@ -84,27 +90,33 @@ namespace WonderGame.Screens
             if (moveDirection != Vector2.Zero)
             {
                 moveDirection.Normalize();
-                var nextPosition = _playerPosition + moveDirection * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                var moveAmount = moveDirection * speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
                 
-                // Player's bounding box at the next position
                 var playerSize = _font.MeasureString("@");
-                var nextPlayerBounds = new Rectangle((int)nextPosition.X, (int)nextPosition.Y, (int)playerSize.X, (int)playerSize.Y);
+                var originalPosition = _playerPosition;
 
-                // Check for collision with any world object
-                bool collisionDetected = false;
-                foreach (var obj in _worldObjects)
+                // Check X-axis collision
+                _playerPosition.X += moveAmount.X;
+                var nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)originalPosition.Y, (int)playerSize.X, (int)playerSize.Y);
+                foreach (var rect in _collisionRects)
                 {
-                    if (obj.BoundingBox.Intersects(nextPlayerBounds))
+                    if (rect.Intersects(nextPlayerBounds))
                     {
-                        collisionDetected = true;
+                        _playerPosition.X = originalPosition.X; // Collision, revert X
                         break;
                     }
                 }
-                
-                // Only update position if no collision is detected
-                if (!collisionDetected)
+
+                // Check Y-axis collision
+                _playerPosition.Y += moveAmount.Y;
+                nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)playerSize.X, (int)playerSize.Y);
+                foreach (var rect in _collisionRects)
                 {
-                    _playerPosition = nextPosition;
+                    if (rect.Intersects(nextPlayerBounds))
+                    {
+                        _playerPosition.Y = originalPosition.Y; // Collision, revert Y
+                        break;
+                    }
                 }
             }
         }
@@ -113,23 +125,28 @@ namespace WonderGame.Screens
         {
             var spriteBatch = Core.Global.SpriteBatch;
             if (spriteBatch == null) return;
+            
+            string instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact";
+            spriteBatch.DrawString(_font, instructions, new Vector2(20, 20), Color.Gray);
 
-            // 1. Draw the room layout
-            var y = 100;
-            foreach (var line in _roomLayout)
+            // Draw floor dots
+            for (int x = 0; x < 30; x++)
             {
-                spriteBatch.DrawString(_font, line, new Vector2(100, y), _themeForeground);
-                y += _font.LineSpacing;
+                for (int y = 0; y < 15; y++)
+                {
+                    spriteBatch.DrawString(_font, ".", new Vector2(110 + x * 20, 110 + y * 20), _themeForeground, 0, Vector2.Zero, 0.8f, SpriteEffects.None, 0);
+                }
             }
 
-            // 2. Draw all the world objects (including the door)
+            // Draw objects and cover floor dots behind them
             foreach (var obj in _worldObjects)
             {
-                spriteBatch.DrawString(_font, obj.Name, obj.Position, _themeForeground);
+                spriteBatch.Draw(spriteBatch.GraphicsDevice.GetWhitePixel(), obj.BoundingBox, _themeBackground);
+                spriteBatch.DrawString(_font, obj.Name, obj.Position, _themeForeground, 0, Vector2.Zero, obj.Scale, SpriteEffects.None, 0);
             }
-
-            // 3. Draw the player
-            spriteBatch.DrawString(_font, "@", _playerPosition, Color.LawnGreen); // Make player stand out
+            
+            // Draw player
+            spriteBatch.DrawString(_font, "@", _playerPosition, Color.LawnGreen);
         }
     }
 } 

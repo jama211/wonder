@@ -12,8 +12,8 @@ public class BootScreen : IScreen
     // Configuration for line display speed and pauses
     private const float MIN_LINE_SPEED_SECONDS = 0.000f;
     private const float LINE_SPEED_VARIABILITY_SECONDS = 0.005f;
-    private const float CHANCE_OF_LONG_PAUSE = 0.015f; // 1.5% chance
-    private const float LONG_PAUSE_MIN_SECONDS = 0.2f;
+    private const float CHANCE_OF_LONG_PAUSE = 0.01f; // 1% chance
+    private const float LONG_PAUSE_MIN_SECONDS = 0.01f;
     private const float LONG_PAUSE_VARIABILITY_SECONDS = 0.3f;
     
     private readonly TextRenderer _textRenderer;

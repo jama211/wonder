@@ -62,9 +62,6 @@ public class Program : Game
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-            Exit();
-
         _currentScreen?.Update(gameTime);
 
         var nextScreen = _currentScreen?.GetNextScreen();
