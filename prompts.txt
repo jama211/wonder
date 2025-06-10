@@ -1,3 +1,13 @@
 I'm planning on making a game, and I want to give you some context first. I want to make a game in c# (making sure to use mono-compatible libraries only for later cross compatibility) that starts with a text based adventure with a green and black retro style text interface. Later though, it will turn into a platformer in place - that means it will be a platformer where you are made of text-like elements and also the platforms etc will be text elements - in fact, the platforms etc will be made out of text. whilst at first it will be typing only, I will later have commands like "look" show the current room layout with words describing what they are but in the physical locations that will be on the screen for the platformer to work with. In fact, I may also have a top down/angled isometric view and have the player walk around the worded objects in the room and interact with them... 
 
 Anyway, I'm getting ahead of myself. Let's start small. Please remember the contexct above, and then make me a basic program that opens a window filled with fake boot-up style green text on a black background that we can use as the starting point for a game. Once it's "booted" it needs to present some initial text (insert anything placeholder for now) and then allow a text input field for the user. 
+
+
+... 
+
+
+yo. we're back.  so, stage 2 is I want the game to seemlessly transition from a text based adventure to an isometric view. here's some guidelines
+- Add a description to MainScreen that says you find yourself in a room would you like to look around? Though, feel free to tart up this language a little bit. 
+- Add a new command called look which should return a description of the room, make sure there's some stuff in there like a door, a table, a fridge, I dunno a few other things whatever you feel like - and ask the user if they would like to "look harder"
+- The next stage is to add a command "look harder" which when they do so we transition to another screen, contained within a new screen file, which will be an isometric view made entirely of ascii characters, where the player is an @ symbol (a reference to the mines of moria) and all the objects are placed in the room - but the objects are made of the word that describes them. E.g, to represent a bed, you'd just have the word bed somewhere on the screen. The arrow keys (or WASD) will walk the player around the room. try and represent the floor and the walls of the room with dots and lines or whatever, but have the door be the represented by the word door (but vertical, of course). 
+- Make sure your player collides with worded objects 

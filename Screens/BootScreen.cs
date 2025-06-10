@@ -10,8 +10,8 @@ namespace WonderGame.Screens;
 public class BootScreen : IScreen
 {
     // Configuration for line display speed and pauses
-    private const float MIN_LINE_SPEED_SECONDS = 0.001f;
-    private const float LINE_SPEED_VARIABILITY_SECONDS = 0.03f;
+    private const float MIN_LINE_SPEED_SECONDS = 0.000f;
+    private const float LINE_SPEED_VARIABILITY_SECONDS = 0.005f;
     private const float CHANCE_OF_LONG_PAUSE = 0.015f; // 1.5% chance
     private const float LONG_PAUSE_MIN_SECONDS = 0.2f;
     private const float LONG_PAUSE_VARIABILITY_SECONDS = 0.3f;
@@ -22,10 +22,11 @@ public class BootScreen : IScreen
     private float _timer;
     private int _currentLine;
     private float _currentLineTime;
+    
+    private IScreen? _nextScreen;
+    private readonly Func<IScreen> _createNextScreen;
 
-    public event Action? OnBootSequenceComplete;
-
-    public BootScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeForeground)
+    public BootScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeForeground, Func<IScreen> createNextScreen)
     {
         _textRenderer = new TextRenderer(graphicsDevice, font, themeForeground);
         _bootMessages = LoadBootMessages("Data/boot_sequence.txt");
@@ -33,6 +34,7 @@ public class BootScreen : IScreen
 
         _timer = 0f;
         _currentLine = 0;
+        _createNextScreen = createNextScreen;
         SetNextLineTime();
     }
 
@@ -63,7 +65,7 @@ public class BootScreen : IScreen
 
     public void Update(GameTime gameTime)
     {
-        if (_currentLine >= _bootMessages.Count) return;
+        if (_nextScreen != null || _currentLine >= _bootMessages.Count) return;
 
         _timer += (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -76,7 +78,7 @@ public class BootScreen : IScreen
 
             if (_currentLine >= _bootMessages.Count)
             {
-                OnBootSequenceComplete?.Invoke();
+                _nextScreen = _createNextScreen();
                 break; // Exit loop, sequence is complete
             }
         }
@@ -87,5 +89,10 @@ public class BootScreen : IScreen
         // The TextRenderer now handles everything: clearing the screen is done
         // in the main Program.cs, and the SpriteBatch is handled globally.
         _textRenderer.Draw(_currentLine);
+    }
+
+    public IScreen? GetNextScreen()
+    {
+        return _nextScreen;
     }
 } 

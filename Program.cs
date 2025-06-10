@@ -37,16 +37,8 @@ public class Program : Game
 
         _font = Content.Load<SpriteFont>("DefaultFont");
 
-        _currentScreen = new BootScreen(GraphicsDevice, _font, THEME_FOREGROUND);
-        // Subscribe to the boot sequence completion event
-        ((BootScreen)_currentScreen).OnBootSequenceComplete += HandleBootSequenceComplete;
-    }
-
-    private void HandleBootSequenceComplete()
-    {
-        if (_font == null) return; // Null check for safety
-        // Switch to the main screen
-        _currentScreen = new MainScreen(GraphicsDevice, _font, THEME_BACKGROUND, THEME_FOREGROUND);
+        _currentScreen = new BootScreen(GraphicsDevice, _font, THEME_FOREGROUND, 
+            () => new MainScreen(GraphicsDevice, _font, THEME_BACKGROUND, THEME_FOREGROUND));
     }
 
     private void HandleTextInput(object? sender, TextInputEventArgs e)
@@ -74,6 +66,12 @@ public class Program : Game
             Exit();
 
         _currentScreen?.Update(gameTime);
+
+        var nextScreen = _currentScreen?.GetNextScreen();
+        if (nextScreen != null)
+        {
+            _currentScreen = nextScreen;
+        }
 
         base.Update(gameTime);
     }

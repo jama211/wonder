@@ -25,13 +25,28 @@ namespace WonderGame.Screens
 
         private double _cursorTimer;
         private bool _cursorVisible;
+        
+        private IScreen? _nextScreen;
+        private readonly GraphicsDevice _graphicsDevice;
+        private readonly Color _themeBackground;
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
+            _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
-            _history.Add("Welcome to WonderGame. Type 'help' for a list of commands.");
+            _themeBackground = themeBackground;
+
+            _history.Add("Your eyes slowly adjust to the gloom. You find yourself in a room.");
+            _history.Add("A single bare bulb hanging from the ceiling casts long, dancing shadows.");
+            _history.Add("Would you like to 'look' around?");
+            
             _previousKeyboardState = Keyboard.GetState();
+        }
+
+        public IScreen? GetNextScreen()
+        {
+            return _nextScreen;
         }
 
         public void OnTextInput(char character)
@@ -116,6 +131,17 @@ namespace WonderGame.Screens
                     _history.Add("  help  - Shows this help message.");
                     _history.Add("  clear - Clears the screen.");
                     _history.Add("  exit  - Exits the game.");
+                    _history.Add("  look  - Examines your surroundings.");
+                    break;
+                case "look":
+                    _history.Add("The room is sparse, coated in a fine layer of dust. Against one wall stands");
+                    _history.Add("a humming, ancient REFRIGERATOR. A sturdy wooden TABLE sits in the center,");
+                    _history.Add("and a heavy iron DOOR is set in the opposite wall. It feels like you");
+                    _history.Add("could 'look harder' to get a better sense of the space.");
+                    break;
+                case "look harder":
+                    _history.Add("You focus, concentrating on the space around you...");
+                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
                     break;
                 case "exit":
                     // A proper event system would be better, but this works for now.
