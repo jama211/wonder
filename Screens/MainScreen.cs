@@ -57,20 +57,19 @@ namespace WonderGame.Screens
         public void Update(GameTime gameTime)
         {
             var keyboardState = Keyboard.GetState();
-            
-            // DIAGNOSTIC: Just print a message on escape instead of changing state.
-            if (keyboardState.IsKeyDown(Keys.Escape) && !_previousKeyboardState.IsKeyDown(Keys.Escape))
+
+            if (_currentState == ScreenState.ConfirmingQuit)
             {
-                System.Console.WriteLine("DEBUG: Escape key press detected and handled safely.");
+                HandleQuitConfirmationInput(keyboardState);
             }
-            else
+            else // Normal state
             {
-                // This is all the original "Normal" state logic.
-                if (_currentState == ScreenState.ConfirmingQuit)
+                if (keyboardState.IsKeyDown(Keys.Escape) && !_previousKeyboardState.IsKeyDown(Keys.Escape))
                 {
-                    HandleQuitConfirmationInput(keyboardState);
+                    _currentState = ScreenState.ConfirmingQuit;
+                    _selectedQuitOption = 0; // Default to Confirm
                 }
-                else // Normal state
+                else
                 {
                     HandleSpecialKeys();
                     _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
@@ -81,7 +80,6 @@ namespace WonderGame.Screens
                     }
                 }
             }
-            
             _previousKeyboardState = keyboardState;
         }
 
@@ -124,7 +122,6 @@ namespace WonderGame.Screens
         private void DrawMainContent()
         {
             float yPos = 10;
-            // Use the lineHeight from the font for consistent spacing
             float lineHeight = _font.LineSpacing;
 
             foreach (var line in _history)
@@ -133,7 +130,17 @@ namespace WonderGame.Screens
                 yPos += lineHeight;
             }
 
-            var inputPrompt = $"> {_currentInput}";
+            // Filter the input to prevent drawing unsupported characters
+            var filteredInput = new StringBuilder();
+            foreach(char c in _currentInput.ToString())
+            {
+                if (_font.Characters.Contains(c))
+                {
+                    filteredInput.Append(c);
+                }
+            }
+
+            var inputPrompt = $"> {filteredInput}";
             Global.SpriteBatch?.DrawString(_font, inputPrompt, new Vector2(10, yPos), _themeForeground);
 
             if (_cursorVisible && _currentState == ScreenState.Normal)
@@ -145,7 +152,6 @@ namespace WonderGame.Screens
 
         private void DrawQuitConfirmationDialog()
         {
-            // System.Console.WriteLine("DEBUG: Attempting to draw quit dialog."); // NEW DEBUG MESSAGE
             var viewport = _graphicsDevice.Viewport;
             var dialogWidth = 400;
             var dialogHeight = 120;
@@ -186,7 +192,6 @@ namespace WonderGame.Screens
 
         private void HandleQuitConfirmationInput(KeyboardState keyboardState)
         {
-            // System.Console.WriteLine("DEBUG: Handling quit confirmation input."); // DEBUG MESSAGE
             if (keyboardState.IsKeyDown(Keys.Right) && !_previousKeyboardState.IsKeyDown(Keys.Right))
             {
                 _selectedQuitOption = 1; // Move to Cancel
@@ -205,10 +210,6 @@ namespace WonderGame.Screens
                 {
                     _currentState = ScreenState.Normal;
                 }
-            }
-             else if (keyboardState.IsKeyDown(Keys.Escape) && !_previousKeyboardState.IsKeyDown(Keys.Escape))
-            {
-                _currentState = ScreenState.Normal; // Also cancel on escape
             }
         }
 
