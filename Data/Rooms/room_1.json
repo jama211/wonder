@@ -6,13 +6,19 @@
       "Y": 220,
       "ScaleX": 2.5,
       "ScaleY": 1.5,
-      "Description": "An old, sturdy wooden table. It has coffee rings stained on its surface."
+      "Description": "An old, sturdy wooden table. It has coffee rings stained on its surface.",
+      "DoorTo": null,
+      "GroupId": null
     },
     {
       "Name": "FRIDGE",
       "X": 500,
       "Y": 150,
-      "Description": "A vintage refrigerator, humming loudly. It's surprisingly cold."
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A vintage refrigerator, humming loudly. It\u0027s surprisingly cold.",
+      "DoorTo": null,
+      "GroupId": null
     },
     {
       "Name": "LIGHTBULB",
@@ -20,31 +26,89 @@
       "Y": 80,
       "ScaleX": 0.8,
       "ScaleY": 0.8,
-      "Description": "A single, bare bulb. It flickers occasionally."
+      "Description": "A single, bare bulb. It flickers occasionally.",
+      "DoorTo": null,
+      "GroupId": null
     },
     {
-      "Name": "B", "X": 200, "Y": 350, "Description": "A banana. It seems perfectly ripe."
+      "Name": "B",
+      "X": 200,
+      "Y": 350,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
-      "Name": "A", "X": 215, "Y": 360, "Description": "A banana. It seems perfectly ripe."
+      "Name": "A",
+      "X": 215,
+      "Y": 360,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
-      "Name": "N", "X": 235, "Y": 365, "Description": "A banana. It seems perfectly ripe."
+      "Name": "N",
+      "X": 235,
+      "Y": 365,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
-      "Name": "A", "X": 255, "Y": 360, "Description": "A banana. It seems perfectly ripe."
+      "Name": "A",
+      "X": 255,
+      "Y": 360,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
-      "Name": "N", "X": 275, "Y": 355, "Description": "A banana. It seems perfectly ripe."
+      "Name": "N",
+      "X": 275,
+      "Y": 355,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
-      "Name": "A", "X": 290, "Y": 345, "Description": "A banana. It seems perfectly ripe."
+      "Name": "A",
+      "X": 290,
+      "Y": 345,
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A banana. It seems perfectly ripe.",
+      "DoorTo": null,
+      "GroupId": "banana"
     },
     {
       "Name": "D\nO\nO\nR",
       "X": 690,
       "Y": 200,
-      "DoorTo": "room_2"
+      "ScaleX": 1,
+      "ScaleY": 1,
+      "Description": "A sturdy wooden door, leading out of the apartment.",
+      "DoorTo": "room_2",
+      "GroupId": null
+    },
+    {
+      "Name": "RUG",
+      "X": 364,
+      "Y": 220,
+      "ScaleX": 9.066667,
+      "ScaleY": 7.2727275,
+      "Description": "A large, colorful rug. yay. ",
+      "DoorTo": null,
+      "GroupId": null
     }
   ]
-} 
+}

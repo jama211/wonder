@@ -76,11 +76,4 @@ namespace WonderGame.Core
             }
         }
     }
-
-    // A static class to hold global references, like the SpriteBatch.
-    // This simplifies passing the SpriteBatch to every single draw call.
-    public static class Global
-    {
-        public static SpriteBatch? SpriteBatch { get; set; }
-    }
 } 

@@ -28,6 +28,7 @@ public class Program : Game
     {
         base.Initialize();
         Window.TextInput += HandleTextInput;
+        Global.Initialize(GraphicsDevice);
     }
 
     protected override void LoadContent()

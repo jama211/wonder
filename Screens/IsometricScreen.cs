@@ -7,24 +7,37 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using WonderGame.Core;
+using WonderGame.Data;
 
 namespace WonderGame.Screens
 {
     // Represents an object in the isometric world, defined by its name and position.
     public class WorldObject
     {
-        public RoomObject Data { get; }
-        public Vector2 Position { get; }
-        public Rectangle BoundingBox { get; }
-        public Vector2 Scale { get; }
+        public Data.RoomObject Data { get; }
+        public Vector2 Position { get; private set; }
+        public Rectangle BoundingBox { get; private set; }
+        public Vector2 Scale { get; private set; }
+        private readonly SpriteFont _font;
 
-        public WorldObject(RoomObject data, SpriteFont font)
+        public WorldObject(Data.RoomObject data, SpriteFont font)
         {
             Data = data;
-            Position = new Vector2(data.X, data.Y);
-            Scale = new Vector2(data.ScaleX, data.ScaleY);
-            var size = font.MeasureString(data.Name) * Scale;
+            _font = font;
+            UpdateBoundingBox();
+        }
+
+        public void UpdateBoundingBox()
+        {
+            Position = new Vector2(Data.X, Data.Y);
+            Scale = new Vector2(Data.ScaleX, Data.ScaleY);
+            var size = _font.MeasureString(Data.Name) * Scale;
             BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)size.Y);
+        }
+
+        public void Draw(SpriteBatch spriteBatch)
+        {
+            spriteBatch.DrawString(_font, Data.Name, Position, Color.White, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
         }
     }
 
@@ -48,12 +61,13 @@ namespace WonderGame.Screens
         private string _currentRoomName = "";
         private KeyboardState _previousKeyboardState;
 
-        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName)
+        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null)
         {
             _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
+            _previousKeyboardState = previousKeyboardState ?? Keyboard.GetState();
             
             LoadRoom(startingRoomName, null);
         }
@@ -135,9 +149,15 @@ namespace WonderGame.Screens
         {
             var keyboardState = Keyboard.GetState();
 
-            if (keyboardState.IsKeyDown(Keys.Escape))
+            if (keyboardState.IsKeyDown(Keys.Escape) && _previousKeyboardState.IsKeyUp(Keys.Escape))
             {
                 _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                return;
+            }
+
+            if (keyboardState.IsKeyDown(Keys.P) && _previousKeyboardState.IsKeyUp(Keys.P))
+            {
+                _nextScreen = new RoomEditorScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, _currentRoomName, keyboardState);
                 return;
             }
 
@@ -221,13 +241,13 @@ namespace WonderGame.Screens
             var spriteBatch = Core.Global.SpriteBatch;
             if (spriteBatch == null) return;
             
-            string instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact";
+            string instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact | P: Edit Room";
             spriteBatch.DrawString(_font, instructions, new Vector2(20, 20), Color.Gray);
 
             // Draw current room name
             var roomNameText = $"Location: {_currentRoomName}";
             var roomNameSize = _font.MeasureString(roomNameText);
-            spriteBatch.DrawString(_font, roomNameText, new Vector2(_graphicsDevice.Viewport.Width - roomNameSize.X - 20, 20), Color.Gray);
+            spriteBatch.DrawString(_font, roomNameText, new Vector2(_graphicsDevice.Viewport.Width - roomNameSize.X - 20, 20 + _font.LineSpacing), Color.Gray);
 
             // Draw floor dots
             for (int x = 0; x < 30; x++)
@@ -242,7 +262,7 @@ namespace WonderGame.Screens
             foreach (var obj in _worldObjects)
             {
                 spriteBatch.Draw(spriteBatch.GraphicsDevice.GetWhitePixel(), obj.BoundingBox, _themeBackground);
-                spriteBatch.DrawString(_font, obj.Data.Name, obj.Position, _themeForeground, 0, Vector2.Zero, obj.Scale, SpriteEffects.None, 0);
+                obj.Draw(spriteBatch);
             }
             
             // Draw player
