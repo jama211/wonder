@@ -24,3 +24,7 @@ I'd like a few refinements:
 - the lightglobe should exist in the room 
 - add some more things in the room for fun, something silly along with some normal things 
 - The player should collide with the walls so they cannot walk outside the room bounds 
+
+...
+
+Hi there! Currently, isometricscreen has everything for the scene inside of it. In the future, there will be many screens like this one, each representing rooms and doors that if you interact with a door it moves you to another screen that is defined somehow also. So, we need a folder to store rooms in, each with files to store the rooms info, and isometric screen should instead be a manager that hosts whatever screen you're in, manages transitions between them, and houses the base logic for handling interactions and showing the instructions etc. Can we make this change, and can you also mane ke three more example rooms, numbered in order, that you can navigate through each time you interact with the adjoining door? Keep in mind all apart from the first and last room you'll need two doors, so you can go forwards and backwards, and you should put items in every room. Oh, and have descriptions for the objects in each room that it shows you the description text of at the bottom if you interact with them. Oh, and make the banana curved by moving the letter positions so it represents a banana. 

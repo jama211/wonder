@@ -3,7 +3,9 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using WonderGame.Core;
 
 namespace WonderGame.Screens
@@ -11,18 +13,18 @@ namespace WonderGame.Screens
     // Represents an object in the isometric world, defined by its name and position.
     public class WorldObject
     {
-        public string Name { get; }
+        public RoomObject Data { get; }
         public Vector2 Position { get; }
         public Rectangle BoundingBox { get; }
         public Vector2 Scale { get; }
 
-        public WorldObject(string name, Vector2 position, SpriteFont font, Vector2? scale = null)
+        public WorldObject(RoomObject data, SpriteFont font)
         {
-            Name = name;
-            Position = position;
-            Scale = scale ?? Vector2.One;
-            var size = font.MeasureString(name) * Scale;
-            BoundingBox = new Rectangle((int)position.X, (int)position.Y, (int)size.X, (int)size.Y);
+            Data = data;
+            Position = new Vector2(data.X, data.Y);
+            Scale = new Vector2(data.ScaleX, data.ScaleY);
+            var size = font.MeasureString(data.Name) * Scale;
+            BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)size.Y);
         }
     }
 
@@ -33,11 +35,15 @@ namespace WonderGame.Screens
         private readonly Color _themeBackground;
         
         private Vector2 _playerPosition;
-        private readonly List<WorldObject> _worldObjects = new();
-        private readonly List<Rectangle> _collisionRects = new();
+        private List<WorldObject> _worldObjects = new();
+        private List<Rectangle> _collisionRects = new();
 
         private IScreen? _nextScreen;
         private readonly GraphicsDevice _graphicsDevice;
+        
+        private string? _interactionMessage;
+        private float _messageTimer;
+        private const float MESSAGE_DURATION = 3f; // seconds
 
         public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -46,17 +52,35 @@ namespace WonderGame.Screens
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
             
-            _playerPosition = new Vector2(250, 200); // Starting position
+            LoadRoom("room_1");
+        }
+        
+        private void LoadRoom(string roomFileName)
+        {
+            var path = Path.Combine("Data", "Rooms", $"{roomFileName}.json");
+            if (!File.Exists(path))
+            {
+                // Handle error, maybe go to an error screen or show a message
+                Console.WriteLine($"Could not find room file: {path}");
+                return;
+            }
 
-            // Define objects, their positions, and scales
-            _worldObjects.Add(new WorldObject("T\nA\nB\nL\nE", new Vector2(300, 220), _font, new Vector2(2.5f, 1.5f))); // Stretched
-            _worldObjects.Add(new WorldObject("FRIDGE", new Vector2(500, 150), _font));
-            _worldObjects.Add(new WorldObject("LIGHTBULB", new Vector2(350, 80), _font, new Vector2(0.8f, 0.8f))); // Scaled down
-            _worldObjects.Add(new WorldObject("BANANA", new Vector2(200, 350), _font));
-            var door = new WorldObject("D\nO\nO\nR", new Vector2(690, 200), _font);
-            _worldObjects.Add(door);
+            var jsonString = File.ReadAllText(path);
+            var roomData = JsonSerializer.Deserialize<Room>(jsonString);
 
-            // Create walls for collision based on the dot layout
+            _worldObjects.Clear();
+            _collisionRects.Clear();
+
+            if (roomData != null)
+            {
+                foreach (var objData in roomData.Objects)
+                {
+                    _worldObjects.Add(new WorldObject(objData, _font));
+                }
+            }
+            
+            _playerPosition = new Vector2(250, 200);
+
             var wallTop = new Rectangle(110, 110, 600, 10);
             var wallBottom = new Rectangle(110, 420, 600, 10);
             var wallLeft = new Rectangle(110, 110, 10, 320);
@@ -72,13 +96,57 @@ namespace WonderGame.Screens
         {
             var keyboardState = Keyboard.GetState();
 
-            // Return to main screen on ESC
             if (keyboardState.IsKeyDown(Keys.Escape))
             {
                 _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
                 return;
             }
 
+            HandlePlayerMovement(gameTime, keyboardState);
+            HandleInteraction(keyboardState);
+            
+            // Message timer
+            if (_interactionMessage != null)
+            {
+                _messageTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (_messageTimer > MESSAGE_DURATION)
+                {
+                    _interactionMessage = null;
+                    _messageTimer = 0;
+                }
+            }
+        }
+        
+        private void HandleInteraction(KeyboardState keyboardState)
+        {
+            if (keyboardState.IsKeyDown(Keys.E))
+            {
+                var playerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)_font.MeasureString("@").X, (int)_font.MeasureString("@").Y);
+                
+                // Add a small buffer to the player bounds for easier interaction
+                playerBounds.Inflate(10, 10);
+
+                foreach (var obj in _worldObjects)
+                {
+                    if (obj.BoundingBox.Intersects(playerBounds))
+                    {
+                        if (obj.Data.DoorTo != null)
+                        {
+                            LoadRoom(obj.Data.DoorTo);
+                            return; // Stop checking after transitioning
+                        }
+                        if (obj.Data.Description != null)
+                        {
+                            _interactionMessage = obj.Data.Description;
+                            _messageTimer = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void HandlePlayerMovement(GameTime gameTime, KeyboardState keyboardState)
+        {
             var moveDirection = Vector2.Zero;
             const float speed = 200f;
 
@@ -95,28 +163,18 @@ namespace WonderGame.Screens
                 var playerSize = _font.MeasureString("@");
                 var originalPosition = _playerPosition;
 
-                // Check X-axis collision
                 _playerPosition.X += moveAmount.X;
                 var nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)originalPosition.Y, (int)playerSize.X, (int)playerSize.Y);
-                foreach (var rect in _collisionRects)
+                if (_collisionRects.Any(rect => rect.Intersects(nextPlayerBounds)))
                 {
-                    if (rect.Intersects(nextPlayerBounds))
-                    {
-                        _playerPosition.X = originalPosition.X; // Collision, revert X
-                        break;
-                    }
+                    _playerPosition.X = originalPosition.X;
                 }
 
-                // Check Y-axis collision
                 _playerPosition.Y += moveAmount.Y;
                 nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)playerSize.X, (int)playerSize.Y);
-                foreach (var rect in _collisionRects)
+                if (_collisionRects.Any(rect => rect.Intersects(nextPlayerBounds)))
                 {
-                    if (rect.Intersects(nextPlayerBounds))
-                    {
-                        _playerPosition.Y = originalPosition.Y; // Collision, revert Y
-                        break;
-                    }
+                    _playerPosition.Y = originalPosition.Y;
                 }
             }
         }
@@ -142,11 +200,18 @@ namespace WonderGame.Screens
             foreach (var obj in _worldObjects)
             {
                 spriteBatch.Draw(spriteBatch.GraphicsDevice.GetWhitePixel(), obj.BoundingBox, _themeBackground);
-                spriteBatch.DrawString(_font, obj.Name, obj.Position, _themeForeground, 0, Vector2.Zero, obj.Scale, SpriteEffects.None, 0);
+                spriteBatch.DrawString(_font, obj.Data.Name, obj.Position, _themeForeground, 0, Vector2.Zero, obj.Scale, SpriteEffects.None, 0);
             }
             
             // Draw player
             spriteBatch.DrawString(_font, "@", _playerPosition, Color.LawnGreen);
+            
+            if (_interactionMessage != null)
+            {
+                var messageSize = _font.MeasureString(_interactionMessage);
+                var messagePos = new Vector2((_graphicsDevice.Viewport.Width - messageSize.X) / 2, _graphicsDevice.Viewport.Height - 50);
+                spriteBatch.DrawString(_font, _interactionMessage, messagePos, Color.White);
+            }
         }
     }
 } 

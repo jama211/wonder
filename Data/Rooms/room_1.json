@@ -1,0 +1,50 @@
+{
+  "Objects": [
+    {
+      "Name": "T\nA\nB\nL\nE",
+      "X": 300,
+      "Y": 220,
+      "ScaleX": 2.5,
+      "ScaleY": 1.5,
+      "Description": "An old, sturdy wooden table. It has coffee rings stained on its surface."
+    },
+    {
+      "Name": "FRIDGE",
+      "X": 500,
+      "Y": 150,
+      "Description": "A vintage refrigerator, humming loudly. It's surprisingly cold."
+    },
+    {
+      "Name": "LIGHTBULB",
+      "X": 350,
+      "Y": 80,
+      "ScaleX": 0.8,
+      "ScaleY": 0.8,
+      "Description": "A single, bare bulb. It flickers occasionally."
+    },
+    {
+      "Name": "B", "X": 200, "Y": 350, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "A", "X": 215, "Y": 360, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "N", "X": 235, "Y": 365, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "A", "X": 255, "Y": 360, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "N", "X": 275, "Y": 355, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "A", "X": 290, "Y": 345, "Description": "A banana. It seems perfectly ripe."
+    },
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 690,
+      "Y": 200,
+      "DoorTo": "room_2"
+    }
+  ]
+} 

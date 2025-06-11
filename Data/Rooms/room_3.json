@@ -1,0 +1,30 @@
+{
+  "Objects": [
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 120,
+      "Y": 200,
+      "DoorTo": "room_2"
+    },
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 690,
+      "Y": 200,
+      "DoorTo": "room_4"
+    },
+    {
+      "Name": "S\nO\nF\nA",
+      "X": 300,
+      "Y": 300,
+      "ScaleX": 2.0,
+      "ScaleY": 1.8,
+      "Description": "A plush sofa. The cushions have a permanent indentation."
+    },
+    {
+      "Name": "PAINTING",
+      "X": 350,
+      "Y": 120,
+      "Description": "A painting of a serene seascape. It seems oddly out of place here."
+    }
+  ]
+} 

@@ -1,0 +1,32 @@
+{
+  "Objects": [
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 120,
+      "Y": 200,
+      "DoorTo": "room_1"
+    },
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 690,
+      "Y": 200,
+      "DoorTo": "room_3"
+    },
+    {
+      "Name": "C\nO\nA\nT\nR\nA\nC\nK",
+      "X": 200,
+      "Y": 150,
+      "ScaleX": 1.2,
+      "ScaleY": 1.2,
+      "Description": "A tall coatrack with a single, dusty hat hanging on it."
+    },
+    {
+      "Name": "PLANT",
+      "X": 550,
+      "Y": 300,
+      "ScaleX": 1.4,
+      "ScaleY": 2,
+      "Description": "A potted plant. It looks suspiciously like plastic."
+    }
+  ]
+} 
