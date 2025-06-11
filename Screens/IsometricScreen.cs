@@ -45,23 +45,61 @@ namespace WonderGame.Screens
         private float _messageTimer;
         private const float MESSAGE_DURATION = 3f; // seconds
 
-        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
+        private string _currentRoomName = "";
+        private KeyboardState _previousKeyboardState;
+
+        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName)
         {
             _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
             
-            LoadRoom("room_1");
+            LoadRoom(startingRoomName, null);
         }
         
-        private void LoadRoom(string roomFileName)
+        private void PositionPlayerAtEntrance(string? comingFromRoomFileName)
+        {
+            if (comingFromRoomFileName == null)
+            {
+                _playerPosition = new Vector2(250, 200); // Initial game start
+                return;
+            }
+
+            var entranceDoor = _worldObjects.FirstOrDefault(o => o.Data.DoorTo == comingFromRoomFileName);
+            if (entranceDoor != null)
+            {
+                // Position player based on which wall the door is on
+                if (entranceDoor.Position.X < 200) // Left wall
+                {
+                    _playerPosition = new Vector2(entranceDoor.Position.X + entranceDoor.BoundingBox.Width + 20, entranceDoor.Position.Y);
+                }
+                else if (entranceDoor.Position.X > 650) // Right wall
+                {
+                    _playerPosition = new Vector2(entranceDoor.Position.X - 40, entranceDoor.Position.Y);
+                }
+                else if (entranceDoor.Position.Y < 150) // Top wall
+                {
+                    _playerPosition = new Vector2(entranceDoor.Position.X, entranceDoor.Position.Y + entranceDoor.BoundingBox.Height + 20);
+                }
+                else // Bottom wall
+                {
+                    _playerPosition = new Vector2(entranceDoor.Position.X, entranceDoor.Position.Y - 40);
+                }
+            }
+            else
+            {
+                _playerPosition = new Vector2(250, 200); // Fallback
+            }
+        }
+        
+        private void LoadRoom(string roomFileName, string? comingFromRoomFileName)
         {
             var path = Path.Combine("Data", "Rooms", $"{roomFileName}.json");
             if (!File.Exists(path))
             {
-                // Handle error, maybe go to an error screen or show a message
                 Console.WriteLine($"Could not find room file: {path}");
+                _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground); // Go back if room not found
                 return;
             }
 
@@ -70,6 +108,7 @@ namespace WonderGame.Screens
 
             _worldObjects.Clear();
             _collisionRects.Clear();
+            _currentRoomName = roomFileName;
 
             if (roomData != null)
             {
@@ -79,7 +118,7 @@ namespace WonderGame.Screens
                 }
             }
             
-            _playerPosition = new Vector2(250, 200);
+            PositionPlayerAtEntrance(comingFromRoomFileName);
 
             var wallTop = new Rectangle(110, 110, 600, 10);
             var wallBottom = new Rectangle(110, 420, 600, 10);
@@ -105,7 +144,6 @@ namespace WonderGame.Screens
             HandlePlayerMovement(gameTime, keyboardState);
             HandleInteraction(keyboardState);
             
-            // Message timer
             if (_interactionMessage != null)
             {
                 _messageTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -115,15 +153,14 @@ namespace WonderGame.Screens
                     _messageTimer = 0;
                 }
             }
+            _previousKeyboardState = keyboardState;
         }
         
         private void HandleInteraction(KeyboardState keyboardState)
         {
-            if (keyboardState.IsKeyDown(Keys.E))
+            if (keyboardState.IsKeyDown(Keys.E) && !_previousKeyboardState.IsKeyDown(Keys.E))
             {
                 var playerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)_font.MeasureString("@").X, (int)_font.MeasureString("@").Y);
-                
-                // Add a small buffer to the player bounds for easier interaction
                 playerBounds.Inflate(10, 10);
 
                 foreach (var obj in _worldObjects)
@@ -132,8 +169,8 @@ namespace WonderGame.Screens
                     {
                         if (obj.Data.DoorTo != null)
                         {
-                            LoadRoom(obj.Data.DoorTo);
-                            return; // Stop checking after transitioning
+                            LoadRoom(obj.Data.DoorTo, _currentRoomName);
+                            return;
                         }
                         if (obj.Data.Description != null)
                         {
@@ -186,6 +223,11 @@ namespace WonderGame.Screens
             
             string instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact";
             spriteBatch.DrawString(_font, instructions, new Vector2(20, 20), Color.Gray);
+
+            // Draw current room name
+            var roomNameText = $"Location: {_currentRoomName}";
+            var roomNameSize = _font.MeasureString(roomNameText);
+            spriteBatch.DrawString(_font, roomNameText, new Vector2(_graphicsDevice.Viewport.Width - roomNameSize.X - 20, 20), Color.Gray);
 
             // Draw floor dots
             for (int x = 0; x < 30; x++)

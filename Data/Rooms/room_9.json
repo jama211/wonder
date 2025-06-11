@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 120, "Y": 200, "DoorTo": "room_8" },
+    { "Name": "SKELETON", "X": 350, "Y": 250, "Description": "The skeleton of a long-dead adventurer. He's clutching a dusty note." },
+    { "Name": "NOTE", "X": 450, "Y": 300, "ScaleX": 0.7, "ScaleY": 0.7, "Description": "The note reads: 'It's behind the...' The rest is illegible." }
+  ]
+} 

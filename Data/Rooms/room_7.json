@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 120, "Y": 200, "DoorTo": "room_5" },
+    { "Name": "MIRROR", "X": 400, "Y": 150, "ScaleX": 1.0, "ScaleY": 2.5, "Description": "Your reflection seems... distorted." },
+    { "Name": "RUG", "X": 350, "Y": 350, "Description": "A circular rug with an intricate pattern." }
+  ]
+} 

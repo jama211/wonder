@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 120, "Y": 250, "DoorTo": "room_10" },
+    { "Name": "D\nO\nO\nR", "X": 690, "Y": 250, "DoorTo": "room_12" },
+    { "Name": "FIREPLACE", "X": 350, "Y": 300, "Description": "A grand fireplace. There is no fire." }
+  ]
+} 

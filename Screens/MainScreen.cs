@@ -249,7 +249,7 @@ namespace WonderGame.Screens
                     break;
                 case "look harder":
                     _history.Add("You focus, concentrating on the space around you...");
-                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1");
                     break;
                 case "exit":
                     // Instead of exiting directly, open the confirmation dialog.

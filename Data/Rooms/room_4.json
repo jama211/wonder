@@ -7,6 +7,12 @@
       "DoorTo": "room_3"
     },
     {
+      "Name": "D\nO\nO\nR",
+      "X": 690,
+      "Y": 250,
+      "DoorTo": "room_10"
+    },
+    {
       "Name": "C\nH\nE\nS\nT",
       "X": 400,
       "Y": 250,
@@ -16,8 +22,8 @@
     },
     {
       "Name": "WINDOW",
-      "X": 600,
-      "Y": 150,
+      "X": 580,
+      "Y": 100,
       "Description": "A grimy window looking out into pitch blackness. You can't see a thing."
     }
   ]
