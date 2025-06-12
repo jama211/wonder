@@ -35,9 +35,9 @@ namespace WonderGame.Screens
             BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)size.Y);
         }
 
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(SpriteBatch spriteBatch, Color color)
         {
-            spriteBatch.DrawString(_font, Data.Name, Position, Color.White, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
+            spriteBatch.DrawString(_font, Data.Name, Position, color, 0, Vector2.Zero, Scale, SpriteEffects.None, 0);
         }
     }
 
@@ -262,7 +262,7 @@ namespace WonderGame.Screens
             foreach (var obj in _worldObjects)
             {
                 spriteBatch.Draw(spriteBatch.GraphicsDevice.GetWhitePixel(), obj.BoundingBox, _themeBackground);
-                obj.Draw(spriteBatch);
+                obj.Draw(spriteBatch, _themeForeground);
             }
             
             // Draw player

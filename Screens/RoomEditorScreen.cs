@@ -277,46 +277,71 @@ namespace WonderGame.Screens
         {
             if (_selectedObject == null || _activeResizeCorner == Corner.None) return;
 
-            var obj = _selectedObject;
-            var originalBbox = obj.BoundingBox;
-            var unscaledSize = _font.MeasureString(obj.Data.Name);
-            if (unscaledSize.X == 0 || unscaledSize.Y == 0) return; // Avoid division by zero
-
-            float newX = obj.Data.X, newY = obj.Data.Y;
-            float newScaleX = obj.Data.ScaleX, newScaleY = obj.Data.ScaleY;
+            var groupBBox = GetGroupBoundingBox(_selectedObject);
+            var members = _selectedGroup.Count > 0 ? _selectedGroup : new List<WorldObject> { _selectedObject };
             
+            // Calculate the total unscaled size of the group
+            Vector2 groupUnscaledMin = new Vector2(float.MaxValue);
+            Vector2 groupUnscaledMax = new Vector2(float.MinValue);
+            foreach (var member in members)
+            {
+                var unscaledSize = _font.MeasureString(member.Data.Name);
+                Vector2 unscaledPos = new Vector2(member.Data.X, member.Data.Y);
+                groupUnscaledMin.X = Math.Min(groupUnscaledMin.X, unscaledPos.X);
+                groupUnscaledMin.Y = Math.Min(groupUnscaledMin.Y, unscaledPos.Y);
+                groupUnscaledMax.X = Math.Max(groupUnscaledMax.X, unscaledPos.X + unscaledSize.X);
+                groupUnscaledMax.Y = Math.Max(groupUnscaledMax.Y, unscaledPos.Y + unscaledSize.Y);
+            }
+            var groupUnscaledSize = groupUnscaledMax - groupUnscaledMin;
+            if (groupUnscaledSize.X == 0 || groupUnscaledSize.Y == 0) return;
+
             int snappedMouseX = (int)Math.Round(mousePos.X / (float)GridSize) * GridSize;
             int snappedMouseY = (int)Math.Round(mousePos.Y / (float)GridSize) * GridSize;
+
+            float newGroupX = groupBBox.X;
+            float newGroupY = groupBBox.Y;
+            float newGroupWidth = groupBBox.Width;
+            float newGroupHeight = groupBBox.Height;
 
             switch (_activeResizeCorner)
             {
                 case Corner.BottomRight:
-                    newScaleX = Math.Max(GridSize, snappedMouseX - originalBbox.Left) / unscaledSize.X;
-                    newScaleY = Math.Max(GridSize, snappedMouseY - originalBbox.Top) / unscaledSize.Y;
+                    newGroupWidth = Math.Max(GridSize, snappedMouseX - groupBBox.Left);
+                    newGroupHeight = Math.Max(GridSize, snappedMouseY - groupBBox.Top);
                     break;
                 case Corner.BottomLeft:
-                    newX = snappedMouseX;
-                    newScaleX = Math.Max(GridSize, originalBbox.Right - snappedMouseX) / unscaledSize.X;
-                    newScaleY = Math.Max(GridSize, snappedMouseY - originalBbox.Top) / unscaledSize.Y;
+                    newGroupWidth = Math.Max(GridSize, groupBBox.Right - snappedMouseX);
+                    newGroupHeight = Math.Max(GridSize, snappedMouseY - groupBBox.Top);
+                    newGroupX = groupBBox.Right - newGroupWidth;
                     break;
                 case Corner.TopRight:
-                    newY = snappedMouseY;
-                    newScaleX = Math.Max(GridSize, snappedMouseX - originalBbox.Left) / unscaledSize.X;
-                    newScaleY = Math.Max(GridSize, originalBbox.Bottom - snappedMouseY) / unscaledSize.Y;
+                    newGroupWidth = Math.Max(GridSize, snappedMouseX - groupBBox.Left);
+                    newGroupHeight = Math.Max(GridSize, groupBBox.Bottom - snappedMouseY);
+                    newGroupY = groupBBox.Bottom - newGroupHeight;
                     break;
                 case Corner.TopLeft:
-                    newX = snappedMouseX;
-                    newY = snappedMouseY;
-                    newScaleX = Math.Max(GridSize, originalBbox.Right - snappedMouseX) / unscaledSize.X;
-                    newScaleY = Math.Max(GridSize, originalBbox.Bottom - snappedMouseY) / unscaledSize.Y;
+                    newGroupWidth = Math.Max(GridSize, groupBBox.Right - snappedMouseX);
+                    newGroupHeight = Math.Max(GridSize, groupBBox.Bottom - snappedMouseY);
+                    newGroupX = groupBBox.Right - newGroupWidth;
+                    newGroupY = groupBBox.Bottom - newGroupHeight;
                     break;
             }
+            
+            float scaleX = newGroupWidth / groupUnscaledSize.X;
+            float scaleY = newGroupHeight / groupUnscaledSize.Y;
 
-            obj.Data.X = (int)newX;
-            obj.Data.Y = (int)newY;
-            obj.Data.ScaleX = newScaleX;
-            obj.Data.ScaleY = newScaleY;
-            obj.UpdateBoundingBox();
+            foreach (var member in members)
+            {
+                // Position relative to the unscaled group's top-left corner
+                float relativeX = member.Data.X - groupUnscaledMin.X;
+                float relativeY = member.Data.Y - groupUnscaledMin.Y;
+
+                member.Data.X = (int)(newGroupX + relativeX * scaleX);
+                member.Data.Y = (int)(newGroupY + relativeY * scaleY);
+                member.Data.ScaleX = scaleX;
+                member.Data.ScaleY = scaleY;
+                member.UpdateBoundingBox();
+            }
         }
 
         private void HandleDuplication(KeyboardState keyboardState)
@@ -370,7 +395,7 @@ namespace WonderGame.Screens
 
             foreach (var obj in _worldObjects)
             {
-                obj.Draw(spriteBatch);
+                obj.Draw(spriteBatch, _themeForeground);
             }
 
             if (_selectedObject != null)
