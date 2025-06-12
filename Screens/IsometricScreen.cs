@@ -19,6 +19,11 @@ namespace WonderGame.Screens
         public Rectangle BoundingBox { get; private set; }
         public Vector2 Scale { get; private set; }
         private readonly SpriteFont _font;
+        
+        // this is a magic number to compensate for the fact that the default bounds of text 
+        // has a lot of space underneath it for the tails of letters like 'y'. we can tweak 
+        // this to get the bounding box to be more snug
+        private const float TEXT_BOUNDS_VERTICAL_ADJUSTMENT = 0.35f;
 
         public WorldObject(Data.RoomObject data, SpriteFont font)
         {
@@ -32,7 +37,19 @@ namespace WonderGame.Screens
             Position = new Vector2(Data.X, Data.Y);
             Scale = new Vector2(Data.ScaleX, Data.ScaleY);
             var size = _font.MeasureString(Data.Name) * Scale;
-            BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)size.Y);
+
+            // we have to fudge the Y value of the bounding box because the default MeasureString
+            // leaves a lot of space for the tails of letters like 'y'.
+            // but we only do this if there are no newlines in the text
+            if (!Data.Name.Contains('\n'))
+            {
+                var fudgedHeight = size.Y - (size.Y * TEXT_BOUNDS_VERTICAL_ADJUSTMENT);
+                BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)fudgedHeight);
+            }
+            else
+            {
+                BoundingBox = new Rectangle((int)Position.X, (int)Position.Y, (int)size.X, (int)size.Y);
+            }
         }
 
         public void Draw(SpriteBatch spriteBatch, Color color)

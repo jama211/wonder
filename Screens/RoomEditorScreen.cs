@@ -280,20 +280,9 @@ namespace WonderGame.Screens
             var groupBBox = GetGroupBoundingBox(_selectedObject);
             var members = _selectedGroup.Count > 0 ? _selectedGroup : new List<WorldObject> { _selectedObject };
             
-            // Calculate the total unscaled size of the group
-            Vector2 groupUnscaledMin = new Vector2(float.MaxValue);
-            Vector2 groupUnscaledMax = new Vector2(float.MinValue);
-            foreach (var member in members)
-            {
-                var unscaledSize = _font.MeasureString(member.Data.Name);
-                Vector2 unscaledPos = new Vector2(member.Data.X, member.Data.Y);
-                groupUnscaledMin.X = Math.Min(groupUnscaledMin.X, unscaledPos.X);
-                groupUnscaledMin.Y = Math.Min(groupUnscaledMin.Y, unscaledPos.Y);
-                groupUnscaledMax.X = Math.Max(groupUnscaledMax.X, unscaledPos.X + unscaledSize.X);
-                groupUnscaledMax.Y = Math.Max(groupUnscaledMax.Y, unscaledPos.Y + unscaledSize.Y);
-            }
-            var groupUnscaledSize = groupUnscaledMax - groupUnscaledMin;
-            if (groupUnscaledSize.X == 0 || groupUnscaledSize.Y == 0) return;
+            // Calculate the initial total size of the group from their actual bounding boxes
+            Vector2 groupInitialSize = new Vector2(groupBBox.Width, groupBBox.Height);
+            if (groupInitialSize.X == 0 || groupInitialSize.Y == 0) return;
 
             int snappedMouseX = (int)Math.Round(mousePos.X / (float)GridSize) * GridSize;
             int snappedMouseY = (int)Math.Round(mousePos.Y / (float)GridSize) * GridSize;
@@ -327,19 +316,23 @@ namespace WonderGame.Screens
                     break;
             }
             
-            float scaleX = newGroupWidth / groupUnscaledSize.X;
-            float scaleY = newGroupHeight / groupUnscaledSize.Y;
+            // Calculate scale based on the change from the initial bounding box size
+            float scaleX = newGroupWidth / groupInitialSize.X;
+            float scaleY = newGroupHeight / groupInitialSize.Y;
 
             foreach (var member in members)
             {
-                // Position relative to the unscaled group's top-left corner
-                float relativeX = member.Data.X - groupUnscaledMin.X;
-                float relativeY = member.Data.Y - groupUnscaledMin.Y;
+                // Position relative to the group's top-left corner
+                float relativeX = member.BoundingBox.X - groupBBox.X;
+                float relativeY = member.BoundingBox.Y - groupBBox.Y;
 
                 member.Data.X = (int)(newGroupX + relativeX * scaleX);
                 member.Data.Y = (int)(newGroupY + relativeY * scaleY);
-                member.Data.ScaleX = scaleX;
-                member.Data.ScaleY = scaleY;
+
+                // Apply the scale change to the existing scale
+                member.Data.ScaleX *= scaleX;
+                member.Data.ScaleY *= scaleY;
+                
                 member.UpdateBoundingBox();
             }
         }
