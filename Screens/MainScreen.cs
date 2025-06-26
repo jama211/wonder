@@ -44,6 +44,11 @@ namespace WonderGame.Screens
         // Text rendering and scrolling
         private float _scrollOffset = 0f;
         private readonly List<string> _wrappedLines = new();
+        private bool _userHasScrolled = false;
+        
+        // Command history
+        private readonly List<string> _commandHistory = new();
+        private int _commandHistoryIndex = -1;
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -141,11 +146,21 @@ namespace WonderGame.Screens
             if (_currentState == ScreenState.Normal)
             {
                 var command = _currentInput.ToString();
+                
+                // Add to command history if not empty and not the same as last command
+                if (!string.IsNullOrWhiteSpace(command) && 
+                    (_commandHistory.Count == 0 || _commandHistory[_commandHistory.Count - 1] != command))
+                {
+                    _commandHistory.Add(command);
+                }
+                _commandHistoryIndex = -1; // Reset history navigation
+                
                 _history.Add(""); // Add spacing above the user prompt
                 _history.Add($">> {command}");
                 _history.Add(""); // Add spacing between input and response
                 ProcessCommand(command);
                 _currentInput.Clear();
+                _userHasScrolled = false; // Reset scroll flag so new content auto-scrolls
             }
         }
 
@@ -162,8 +177,8 @@ namespace WonderGame.Screens
             var visibleLineCount = (int)((viewport.Height - 60) / lineHeight); // Leave space for input
             var totalLines = _wrappedLines.Count;
             
-            // Auto-scroll to bottom if we have more lines than can fit
-            if (totalLines > visibleLineCount)
+            // Auto-scroll to bottom if we have more lines than can fit AND user hasn't manually scrolled
+            if (totalLines > visibleLineCount && !_userHasScrolled)
             {
                 _scrollOffset = totalLines - visibleLineCount;
             }
@@ -310,22 +325,28 @@ namespace WonderGame.Screens
             var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
             var maxScroll = Math.Max(0, _wrappedLines.Count - visibleLineCount);
             
+            bool scrolled = false;
+            
             // Keyboard scrolling
             if (keyboardState.IsKeyDown(Keys.PageUp) && !_previousKeyboardState.IsKeyDown(Keys.PageUp))
             {
                 _scrollOffset = Math.Max(0, _scrollOffset - scrollSpeed);
+                scrolled = true;
             }
             else if (keyboardState.IsKeyDown(Keys.PageDown) && !_previousKeyboardState.IsKeyDown(Keys.PageDown))
             {
                 _scrollOffset = Math.Min(maxScroll, _scrollOffset + scrollSpeed);
+                scrolled = true;
             }
             else if (keyboardState.IsKeyDown(Keys.Home) && !_previousKeyboardState.IsKeyDown(Keys.Home))
             {
                 _scrollOffset = 0;
+                scrolled = true;
             }
             else if (keyboardState.IsKeyDown(Keys.End) && !_previousKeyboardState.IsKeyDown(Keys.End))
             {
                 _scrollOffset = Math.Max(0, _wrappedLines.Count - visibleLineCount);
+                scrolled = true;
             }
             
             // Mouse wheel scrolling
@@ -341,6 +362,12 @@ namespace WonderGame.Screens
                 {
                     _scrollOffset = Math.Min(maxScroll, _scrollOffset + mouseScrollSpeed);
                 }
+                scrolled = true;
+            }
+            
+            if (scrolled)
+            {
+                _userHasScrolled = true;
             }
         }
 
@@ -417,6 +444,42 @@ namespace WonderGame.Screens
                 _currentInput.Append("    ");
             }
             
+            // Command history navigation with Up/Down arrows
+            if (keyboardState.IsKeyDown(Keys.Up) && !_previousKeyboardState.IsKeyDown(Keys.Up))
+            {
+                if (_commandHistory.Count > 0)
+                {
+                    if (_commandHistoryIndex == -1)
+                    {
+                        _commandHistoryIndex = _commandHistory.Count - 1;
+                    }
+                    else if (_commandHistoryIndex > 0)
+                    {
+                        _commandHistoryIndex--;
+                    }
+                    
+                    _currentInput.Clear();
+                    _currentInput.Append(_commandHistory[_commandHistoryIndex]);
+                }
+            }
+            else if (keyboardState.IsKeyDown(Keys.Down) && !_previousKeyboardState.IsKeyDown(Keys.Down))
+            {
+                if (_commandHistory.Count > 0 && _commandHistoryIndex != -1)
+                {
+                    if (_commandHistoryIndex < _commandHistory.Count - 1)
+                    {
+                        _commandHistoryIndex++;
+                        _currentInput.Clear();
+                        _currentInput.Append(_commandHistory[_commandHistoryIndex]);
+                    }
+                    else
+                    {
+                        _commandHistoryIndex = -1;
+                        _currentInput.Clear();
+                    }
+                }
+            }
+            
             _previousKeyboardState = keyboardState;
         }
 
@@ -445,11 +508,6 @@ namespace WonderGame.Screens
                     _history.Add(">   examine [object] - Examines a specific object.");
                     _history.Add(">   touch [object] - Touches a specific object.");
                     _history.Add(">   inventory - Shows your inventory.");
-                    _history.Add("");
-                    _history.Add("> Scroll controls:");
-                    _history.Add(">   PageUp/PageDown - Scroll through text history");
-                    _history.Add(">   Home/End - Jump to top/bottom of history");
-                    _history.Add(">   Mouse wheel - Scroll through text history");
                     break;
                     
                 case "look":
@@ -459,12 +517,14 @@ namespace WonderGame.Screens
                     break;
                     
                 case "examine sign":
+                case "look sign":
                     _interactedObjects.Add("sign");
                     CheckInteractionUnlock();
                     _history.Add("> The sign reads: \"____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.\"");
                     break;
                     
                 case "examine terminal":
+                case "look terminal":
                     _interactedObjects.Add("terminal");
                     _history.Add("> It displays a looping warning:");
                     _history.Add("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
@@ -472,13 +532,8 @@ namespace WonderGame.Screens
                     break;
                     
                 case "touch bunk":
-                    _interactedObjects.Add("bunk");
-                    CheckInteractionUnlock();
-                    _history.Add("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
-                    _history.Add("> the last. Tell the Dragon it smells.\"");
-                    break;
-                    
                 case "examine bunk":
+                case "look bunk":
                     _interactedObjects.Add("bunk");
                     CheckInteractionUnlock();
                     _history.Add("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
@@ -486,13 +541,7 @@ namespace WonderGame.Screens
                     break;
                     
                 case "examine walls":
-                    _interactedObjects.Add("walls");
-                    CheckInteractionUnlock();
-                    _history.Add("> Tiny scratches criss-cross the metal. Messages carved into it:");
-                    _history.Add("> - \"i told him he looked like a crouton. he ran.\"");
-                    _history.Add("> - \"insults = escape?\"");
-                    break;
-                    
+                case "look walls":
                 case "touch walls":
                     _interactedObjects.Add("walls");
                     CheckInteractionUnlock();
@@ -506,6 +555,11 @@ namespace WonderGame.Screens
                 case "examine postit note":
                 case "examine note":
                 case "examine post-it note":
+                case "look post-it":
+                case "look postit":
+                case "look postit note":
+                case "look note":
+                case "look post-it note":
                     if (_interactedObjects.Contains("terminal"))
                     {
                         _hasSeenPostItNote = true;
@@ -538,6 +592,7 @@ namespace WonderGame.Screens
                     break;
                     
                 case "exit":
+                case "quit":
                     // Instead of exiting directly, open the confirmation dialog.
                     _currentState = ScreenState.ConfirmingQuit;
                     _selectedQuitOption = 0; // Default to Confirm
