@@ -848,21 +848,31 @@ namespace WonderGame.Screens
             {
                 _typewriterTimer += gameTime.ElapsedGameTime.TotalSeconds;
                 
-                // Calculate variable speed based on character type and add randomness
-                var currentChar = _currentTypingLine[_currentCharIndex];
-                var charSpeed = GetCharacterSpeed(currentChar);
-                
-                if (_typewriterTimer >= charSpeed)
+                // Process multiple characters per frame to overcome frame rate limitations
+                while (_typewriterTimer > 0 && _currentCharIndex < _currentTypingLine.Length)
                 {
-                    _typewriterTimer = 0;
-                    _currentCharIndex++;
+                    var currentChar = _currentTypingLine[_currentCharIndex];
+                    var charSpeed = GetCharacterSpeed(currentChar);
                     
-                    if (_currentCharIndex >= _currentTypingLine.Length)
+                    if (_typewriterTimer >= charSpeed)
                     {
-                        // Finished typing this line
-                        _history.Add(_currentTypingLine);
-                        _currentTypingLine = "";
-                        _currentCharIndex = 0;
+                        _typewriterTimer -= charSpeed; // Subtract the time used for this character
+                        _currentCharIndex++;
+                        
+                        if (_currentCharIndex >= _currentTypingLine.Length)
+                        {
+                            // Finished typing this line
+                            _history.Add(_currentTypingLine);
+                            _currentTypingLine = "";
+                            _currentCharIndex = 0;
+                            _typewriterTimer = 0; // Reset timer for next line
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // Not enough time accumulated for next character
+                        break;
                     }
                 }
             }
