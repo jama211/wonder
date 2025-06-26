@@ -586,12 +586,6 @@ namespace WonderGame.Screens
             QueueOutput(">   examine [object] - Examines a specific object.");
             QueueOutput(">   touch [object] - Touches a specific object.");
             QueueOutput(">   inventory - Shows your inventory.");
-            QueueOutput("");
-            QueueOutput("> Navigation controls:");
-            QueueOutput(">   Up/Down arrows - Navigate command history");
-            QueueOutput(">   PageUp/PageDown - Scroll through text history");
-            QueueOutput(">   Home/End - Jump to top/bottom of history");
-            QueueOutput(">   Mouse wheel - Scroll through text history");
         }
 
         private void HandleLook(string[] args)
