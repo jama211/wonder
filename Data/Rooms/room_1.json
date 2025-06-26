@@ -1,94 +1,44 @@
 {
   "Objects": [
     {
-      "Name": "T\nA\nB\nL\nE",
-      "X": 300,
-      "Y": 220,
-      "ScaleX": 2.5,
-      "ScaleY": 1.5,
-      "Description": "An old, sturdy wooden table. It has coffee rings stained on its surface.",
-      "DoorTo": null,
-      "GroupId": null
-    },
-    {
-      "Name": "FRIDGE",
-      "X": 500,
+      "Name": "B\nU\nN\nK",
+      "X": 100,
       "Y": 150,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A vintage refrigerator, humming loudly. It\u0027s surprisingly cold.",
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "Cold. Uninviting. There's a sticker on the underside: 'You are not the first, nor the last. Tell the Dragon it smells.'",
       "DoorTo": null,
       "GroupId": null
     },
     {
-      "Name": "LIGHTBULB",
+      "Name": "SIGN",
+      "X": 200,
+      "Y": 100,
+      "ScaleX": 1.2,
+      "ScaleY": 1.2,
+      "Description": "The sign reads: '____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.'",
+      "DoorTo": null,
+      "GroupId": null
+    },
+    {
+      "Name": "T\nE\nR\nM\nI\nN\nA\nL",
       "X": 350,
-      "Y": 80,
+      "Y": 200,
+      "ScaleX": 1.8,
+      "ScaleY": 1.8,
+      "Description": "It displays a looping warning: 'EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.'",
+      "DoorTo": null,
+      "GroupId": null
+    },
+    {
+      "Name": "WALLS",
+      "X": 50,
+      "Y": 50,
       "ScaleX": 0.8,
       "ScaleY": 0.8,
-      "Description": "A single, bare bulb. It flickers occasionally.",
+      "Description": "Tiny scratches criss-cross the metal. Messages carved into it: 'i told him he looked like a crouton. he ran.' 'insults = escape?'",
       "DoorTo": null,
       "GroupId": null
-    },
-    {
-      "Name": "B",
-      "X": 130,
-      "Y": 288,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
-    },
-    {
-      "Name": "A",
-      "X": 145,
-      "Y": 298,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
-    },
-    {
-      "Name": "N",
-      "X": 165,
-      "Y": 303,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
-    },
-    {
-      "Name": "A",
-      "X": 185,
-      "Y": 298,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
-    },
-    {
-      "Name": "N",
-      "X": 205,
-      "Y": 293,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
-    },
-    {
-      "Name": "A",
-      "X": 220,
-      "Y": 283,
-      "ScaleX": 1,
-      "ScaleY": 1,
-      "Description": "A banana. It seems perfectly ripe.",
-      "DoorTo": null,
-      "GroupId": "banana"
     },
     {
       "Name": "D\nO\nO\nR",
@@ -96,18 +46,8 @@
       "Y": 200,
       "ScaleX": 1,
       "ScaleY": 1,
-      "Description": "A sturdy wooden door, leading out of the apartment.",
+      "Description": "A metallic door leading out of this chamber.",
       "DoorTo": "room_2",
-      "GroupId": null
-    },
-    {
-      "Name": "RUG",
-      "X": 364,
-      "Y": 220,
-      "ScaleX": 9.066667,
-      "ScaleY": 7.2727275,
-      "Description": "A large, colorful rug. yay. ",
-      "DoorTo": null,
       "GroupId": null
     }
   ]

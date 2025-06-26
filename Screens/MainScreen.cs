@@ -35,6 +35,10 @@ namespace WonderGame.Screens
         private ScreenState _currentState = ScreenState.Normal;
         private int _selectedQuitOption = 0; // 0 for Confirm, 1 for Cancel
 
+        // Interaction tracking for "look harder" unlock
+        private readonly HashSet<string> _interactedObjects = new();
+        private bool _lookHarderUnlocked = false;
+
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
             _graphicsDevice = graphicsDevice;
@@ -42,9 +46,9 @@ namespace WonderGame.Screens
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
 
-            _history.Add("Your eyes slowly adjust to the gloom. You find yourself in a room.");
-            _history.Add("A single bare bulb hanging from the ceiling casts long, dancing shadows.");
-            _history.Add("Would you like to 'look' around?");
+            // New intro text after boot sequence
+            _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
+            _history.Add("> A terminal cursor blinks expectantly.");
             
             _previousKeyboardState = Keyboard.GetState();
         }
@@ -113,7 +117,7 @@ namespace WonderGame.Screens
             if (_currentState == ScreenState.Normal)
             {
                 var command = _currentInput.ToString();
-                _history.Add($"> {command}");
+                _history.Add($">> {command}");
                 ProcessCommand(command);
                 _currentInput.Clear();
             }
@@ -140,7 +144,7 @@ namespace WonderGame.Screens
                 }
             }
 
-            var inputPrompt = $"> {filteredInput}";
+            var inputPrompt = $">> {filteredInput}";
             Global.SpriteBatch?.DrawString(_font, inputPrompt, new Vector2(10, yPos), _themeForeground);
 
             if (_cursorVisible && _currentState == ScreenState.Normal)
@@ -226,6 +230,14 @@ namespace WonderGame.Screens
             _previousKeyboardState = keyboardState;
         }
 
+        private void CheckInteractionUnlock()
+        {
+            if (_interactedObjects.Count >= 2)
+            {
+                _lookHarderUnlocked = true;
+            }
+        }
+
         private void ProcessCommand(string input)
         {
             var command = input.ToLowerInvariant().Trim();
@@ -235,32 +247,97 @@ namespace WonderGame.Screens
             switch (command)
             {
                 case "help":
-                    _history.Add("Available commands:");
-                    _history.Add("  help  - Shows this help message.");
-                    _history.Add("  clear - Clears the screen.");
-                    _history.Add("  exit  - Exits the game.");
-                    _history.Add("  look  - Examines your surroundings.");
+                    _history.Add("> Available commands:");
+                    _history.Add(">   help  - Shows this help message.");
+                    _history.Add(">   clear - Clears the screen.");
+                    _history.Add(">   exit  - Exits the game.");
+                    _history.Add(">   look  - Examines your surroundings.");
+                    _history.Add(">   examine [object] - Examines a specific object.");
+                    _history.Add(">   touch [object] - Touches a specific object.");
+                    _history.Add(">   inventory - Shows your inventory.");
                     break;
+                    
                 case "look":
-                    _history.Add("The room is sparse, coated in a fine layer of dust. Against one wall stands");
-                    _history.Add("a humming, ancient REFRIGERATOR. A sturdy wooden TABLE sits in the center,");
-                    _history.Add("and a heavy iron DOOR is set in the opposite wall. It feels like you");
-                    _history.Add("could 'look harder' to get a better sense of the space.");
+                    _history.Add("> You are in a small square room. The walls are featureless metal, tinted green by");
+                    _history.Add("> flickering fluorescent strips above. There is a terminal in front of you, a bunk");
+                    _history.Add("> bolted to the wall, and an old sign, partially scratched off.");
                     break;
+                    
+                case "examine sign":
+                    _interactedObjects.Add("sign");
+                    CheckInteractionUnlock();
+                    _history.Add("> The sign reads: \"____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.\"");
+                    break;
+                    
+                case "examine terminal":
+                    _interactedObjects.Add("terminal");
+                    CheckInteractionUnlock();
+                    _history.Add("> It displays a looping warning:");
+                    _history.Add("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
+                    break;
+                    
+                case "touch bunk":
+                    _interactedObjects.Add("bunk");
+                    CheckInteractionUnlock();
+                    _history.Add("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
+                    _history.Add("> the last. Tell the Dragon it smells.\"");
+                    break;
+                    
+                case "examine bunk":
+                    _interactedObjects.Add("bunk");
+                    CheckInteractionUnlock();
+                    _history.Add("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
+                    _history.Add("> the last. Tell the Dragon it smells.\"");
+                    break;
+                    
+                case "examine walls":
+                    _interactedObjects.Add("walls");
+                    CheckInteractionUnlock();
+                    _history.Add("> Tiny scratches criss-cross the metal. Messages carved into it:");
+                    _history.Add("> - \"i told him he looked like a crouton. he ran.\"");
+                    _history.Add("> - \"insults = escape?\"");
+                    break;
+                    
+                case "touch walls":
+                    _interactedObjects.Add("walls");
+                    CheckInteractionUnlock();
+                    _history.Add("> Tiny scratches criss-cross the metal. Messages carved into it:");
+                    _history.Add("> - \"i told him he looked like a crouton. he ran.\"");
+                    _history.Add("> - \"insults = escape?\"");
+                    break;
+
+                case "inventory":
+                    _history.Add("> [EMPTY]");
+                    break;
+                    
                 case "look harder":
-                    _history.Add("You focus, concentrating on the space around you...");
-                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState);
+                    if (!_lookHarderUnlocked)
+                    {
+                        _history.Add("> You squint into the shadows... but you're not ready yet. Something's missing.");
+                    }
+                    else
+                    {
+                        _history.Add("> You focus harder. The humming intensifies. The walls begin to shimmer...");
+                        _history.Add("> [TRANSITION TO DEEP SYSTEM MODE INITIATED]");
+                        _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState);
+                    }
                     break;
+                    
                 case "exit":
                     // Instead of exiting directly, open the confirmation dialog.
                     _currentState = ScreenState.ConfirmingQuit;
                     _selectedQuitOption = 0; // Default to Confirm
                     break;
+                    
                 case "clear":
                     _history.Clear();
+                    // Re-add the intro text after clearing
+                    _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
+                    _history.Add("> A terminal cursor blinks expectantly.");
                     break;
+                    
                 default:
-                    _history.Add($"Unknown command: '{command}'");
+                    _history.Add($"> Unknown command: '{command}'");
                     break;
             }
         }
