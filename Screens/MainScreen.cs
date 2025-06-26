@@ -38,6 +38,11 @@ namespace WonderGame.Screens
         // Interaction tracking for "look harder" unlock
         private readonly HashSet<string> _interactedObjects = new();
         private bool _lookHarderUnlocked = false;
+        private bool _hasSeenPostItNote = false;
+        
+        // Text rendering and scrolling
+        private float _scrollOffset = 0f;
+        private readonly List<string> _wrappedLines = new();
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -56,6 +61,8 @@ namespace WonderGame.Screens
             // New intro text after boot sequence
             _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
             _history.Add("> A terminal cursor blinks expectantly.");
+            _history.Add("> Perhaps you should 'look' around to get your bearings.");
+            _history.Add("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
             
             _previousKeyboardState = Keyboard.GetState();
         }
@@ -83,6 +90,7 @@ namespace WonderGame.Screens
                 else
                 {
                     HandleSpecialKeys();
+                    HandleScrolling(keyboardState);
                     _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
                     if (_cursorTimer > 0.5)
                     {
@@ -125,6 +133,7 @@ namespace WonderGame.Screens
             {
                 var command = _currentInput.ToString();
                 _history.Add($">> {command}");
+                _history.Add(""); // Add spacing between input and response
                 ProcessCommand(command);
                 _currentInput.Clear();
             }
@@ -132,15 +141,40 @@ namespace WonderGame.Screens
 
         private void DrawMainContent()
         {
-            float yPos = 10;
-            float lineHeight = _font.LineSpacing;
-
-            foreach (var line in _history)
+            var viewport = _graphicsDevice.Viewport;
+            var margin = 10f;
+            var availableWidth = viewport.Width - (margin * 2);
+            var lineHeight = _font.LineSpacing;
+            
+            // Rebuild wrapped lines when needed
+            RebuildWrappedLines(availableWidth);
+            
+            var visibleLineCount = (int)((viewport.Height - 60) / lineHeight); // Leave space for input
+            var totalLines = _wrappedLines.Count;
+            
+            // Auto-scroll to bottom if we have more lines than can fit
+            if (totalLines > visibleLineCount)
             {
-                Global.SpriteBatch?.DrawString(_font, line, new Vector2(10, yPos), _themeForeground);
+                _scrollOffset = totalLines - visibleLineCount;
+            }
+            
+            // Draw visible lines
+            var startLine = Math.Max(0, (int)_scrollOffset);
+            var endLine = Math.Min(_wrappedLines.Count, startLine + visibleLineCount);
+            
+            float yPos = margin;
+            for (int i = startLine; i < endLine; i++)
+            {
+                if (i < _wrappedLines.Count)
+                {
+                    Global.SpriteBatch?.DrawString(_font, _wrappedLines[i], new Vector2(margin, yPos), _themeForeground);
+                }
                 yPos += lineHeight;
             }
-
+            
+            // Draw input prompt at bottom
+            var inputY = viewport.Height - 40;
+            
             // Filter the input to prevent drawing unsupported characters
             var filteredInput = new StringBuilder();
             foreach(char c in _currentInput.ToString())
@@ -152,12 +186,138 @@ namespace WonderGame.Screens
             }
 
             var inputPrompt = $">> {filteredInput}";
-            Global.SpriteBatch?.DrawString(_font, inputPrompt, new Vector2(10, yPos), _themeForeground);
+            var inputLines = WrapText(inputPrompt, availableWidth);
+            
+            // Draw input lines
+            var inputStartY = inputY;
+            foreach (var inputLine in inputLines)
+            {
+                Global.SpriteBatch?.DrawString(_font, inputLine, new Vector2(margin, inputStartY), _themeForeground);
+                inputStartY += lineHeight;
+            }
 
+            // Draw cursor
             if (_cursorVisible && _currentState == ScreenState.Normal)
             {
-                var cursorX = _font.MeasureString(inputPrompt).X;
-                Global.SpriteBatch?.DrawString(_font, "_", new Vector2(10 + cursorX, yPos), _themeForeground);
+                var lastInputLine = inputLines.LastOrDefault() ?? "";
+                var cursorX = margin + _font.MeasureString(lastInputLine).X;
+                var cursorY = inputStartY - lineHeight;
+                Global.SpriteBatch?.DrawString(_font, "_", new Vector2(cursorX, cursorY), _themeForeground);
+            }
+        }
+        
+        private void RebuildWrappedLines(float availableWidth)
+        {
+            _wrappedLines.Clear();
+            foreach (var line in _history)
+            {
+                var wrappedLines = WrapText(line, availableWidth);
+                _wrappedLines.AddRange(wrappedLines);
+            }
+        }
+        
+        private List<string> WrapText(string text, float maxWidth)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrEmpty(text))
+            {
+                lines.Add("");
+                return lines;
+            }
+            
+            var words = text.Split(' ');
+            var currentLine = new StringBuilder();
+            
+            foreach (var word in words)
+            {
+                var testLine = currentLine.Length == 0 ? word : $"{currentLine} {word}";
+                var testSize = _font.MeasureString(testLine);
+                
+                if (testSize.X <= maxWidth)
+                {
+                    if (currentLine.Length > 0)
+                        currentLine.Append(" ");
+                    currentLine.Append(word);
+                }
+                else
+                {
+                    if (currentLine.Length > 0)
+                    {
+                        lines.Add(currentLine.ToString());
+                        currentLine.Clear();
+                    }
+                    
+                    // Handle very long words that don't fit on a single line
+                    if (_font.MeasureString(word).X > maxWidth)
+                    {
+                        // Break the word into chunks
+                        var chars = word.ToCharArray();
+                        var chunk = new StringBuilder();
+                        
+                        foreach (var ch in chars)
+                        {
+                            var testChunk = $"{chunk}{ch}";
+                            if (_font.MeasureString(testChunk).X <= maxWidth)
+                            {
+                                chunk.Append(ch);
+                            }
+                            else
+                            {
+                                if (chunk.Length > 0)
+                                {
+                                    lines.Add(chunk.ToString());
+                                    chunk.Clear();
+                                }
+                                chunk.Append(ch);
+                            }
+                        }
+                        
+                        if (chunk.Length > 0)
+                        {
+                            currentLine.Append(chunk.ToString());
+                        }
+                    }
+                    else
+                    {
+                        currentLine.Append(word);
+                    }
+                }
+            }
+            
+            if (currentLine.Length > 0)
+            {
+                lines.Add(currentLine.ToString());
+            }
+            
+            return lines.Count > 0 ? lines : new List<string> { "" };
+        }
+        
+        private void HandleScrolling(KeyboardState keyboardState)
+        {
+            var scrollSpeed = 3f;
+            
+            if (keyboardState.IsKeyDown(Keys.PageUp) && !_previousKeyboardState.IsKeyDown(Keys.PageUp))
+            {
+                _scrollOffset = Math.Max(0, _scrollOffset - scrollSpeed);
+            }
+            else if (keyboardState.IsKeyDown(Keys.PageDown) && !_previousKeyboardState.IsKeyDown(Keys.PageDown))
+            {
+                var viewport = _graphicsDevice.Viewport;
+                var lineHeight = _font.LineSpacing;
+                var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
+                var maxScroll = Math.Max(0, _wrappedLines.Count - visibleLineCount);
+                _scrollOffset = Math.Min(maxScroll, _scrollOffset + scrollSpeed);
+            }
+            else if (keyboardState.IsKeyDown(Keys.Home) && !_previousKeyboardState.IsKeyDown(Keys.Home))
+            {
+                _scrollOffset = 0;
+            }
+            else if (keyboardState.IsKeyDown(Keys.End) && !_previousKeyboardState.IsKeyDown(Keys.End))
+            {
+                var viewport = _graphicsDevice.Viewport;
+                var lineHeight = _font.LineSpacing;
+                var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
+                _scrollOffset = Math.Max(0, _wrappedLines.Count - visibleLineCount);
             }
         }
 
@@ -239,7 +399,7 @@ namespace WonderGame.Screens
 
         private void CheckInteractionUnlock()
         {
-            if (_interactedObjects.Count >= 2)
+            if (_hasSeenPostItNote)
             {
                 _lookHarderUnlocked = true;
             }
@@ -262,6 +422,10 @@ namespace WonderGame.Screens
                     _history.Add(">   examine [object] - Examines a specific object.");
                     _history.Add(">   touch [object] - Touches a specific object.");
                     _history.Add(">   inventory - Shows your inventory.");
+                    _history.Add("");
+                    _history.Add("> Scroll controls:");
+                    _history.Add(">   PageUp/PageDown - Scroll through text history");
+                    _history.Add(">   Home/End - Jump to top/bottom of history");
                     break;
                     
                 case "look":
@@ -278,9 +442,9 @@ namespace WonderGame.Screens
                     
                 case "examine terminal":
                     _interactedObjects.Add("terminal");
-                    CheckInteractionUnlock();
                     _history.Add("> It displays a looping warning:");
                     _history.Add("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
+                    _history.Add("> There's a small yellow post-it note stuck to the bottom corner of the screen.");
                     break;
                     
                 case "touch bunk":
@@ -313,6 +477,25 @@ namespace WonderGame.Screens
                     _history.Add("> - \"insults = escape?\"");
                     break;
 
+                case "examine post-it":
+                case "examine postit":
+                case "examine postit note":
+                case "examine note":
+                case "examine post-it note":
+                    if (_interactedObjects.Contains("terminal"))
+                    {
+                        _hasSeenPostItNote = true;
+                        CheckInteractionUnlock();
+                        _history.Add("> The post-it note reads in hasty handwriting:");
+                        _history.Add("> \"When the warnings get too much, try to 'look harder' at reality.\"");
+                        _history.Add("> \"Trust me, there's more than meets the eye. -J\"");
+                    }
+                    else
+                    {
+                        _history.Add("> You don't see any post-it note here.");
+                    }
+                    break;
+
                 case "inventory":
                     _history.Add("> [EMPTY]");
                     break;
@@ -320,7 +503,7 @@ namespace WonderGame.Screens
                 case "look harder":
                     if (!_lookHarderUnlocked)
                     {
-                        _history.Add("> You squint into the shadows... but you're not ready yet. Something's missing.");
+                        _history.Add("> You try to focus, but the command feels unfamiliar. Maybe you need more context first?");
                     }
                     else
                     {
@@ -346,6 +529,8 @@ namespace WonderGame.Screens
                     _history.Add("");
                     _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
                     _history.Add("> A terminal cursor blinks expectantly.");
+                    _history.Add("> Perhaps you should 'look' around to get your bearings.");
+                    _history.Add("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
                     break;
                     
                 default:

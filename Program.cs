@@ -22,6 +22,9 @@ public class Program : Game
         _graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
+        
+        // Make window resizable
+        Window.AllowUserResizing = true;
     }
 
     protected override void Initialize()
