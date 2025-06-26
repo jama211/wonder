@@ -67,3 +67,4 @@ This is genuinely innovative! The concept of text literally becoming the game wo
 
 Oh, and some final things: 
 - Please don't automatically add, commit and push changes with a reasonable commit message unless I ask you to, which I'll do by asking you to "push those changes" 
+- If the project allows it, always run "dotnet build" after making any changes, and if any errors or warnings appear attempt to fix them, unless doing so sends you on a long spiral in which case stop 
