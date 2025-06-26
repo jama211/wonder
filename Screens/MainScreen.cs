@@ -72,6 +72,11 @@ namespace WonderGame.Screens
             return _nextScreen;
         }
 
+        public void AddLogEntry(string logEntry)
+        {
+            _history.Add(logEntry);
+        }
+
         public void Update(GameTime gameTime)
         {
             var keyboardState = Keyboard.GetState();

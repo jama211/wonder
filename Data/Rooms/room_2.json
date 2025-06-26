@@ -4,38 +4,61 @@
       "Name": "D\nO\nO\nR",
       "X": 120,
       "Y": 200,
-      "DoorTo": "room_1"
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": "A metallic door leading back to the previous chamber.",
+      "DoorTo": "room_1",
+      "GroupId": null
     },
     {
       "Name": "D\nO\nO\nR",
       "X": 690,
       "Y": 200,
-      "DoorTo": "room_3"
-    },
-    {
-      "Name": "DOOR",
-      "X": 400,
-      "Y": 410,
-      "ScaleX": 2.0,
+      "ScaleX": 1.0,
       "ScaleY": 1.0,
-      "DoorTo": "room_8",
-      "Description": "A sturdy wooden door."
+      "Description": "A metallic door leading to the next chamber.",
+      "DoorTo": "room_3",
+      "GroupId": null
     },
     {
-      "Name": "C\nO\nA\nT\nR\nA\nC\nK",
+      "Name": "B\nO\nX\nE\nS",
       "X": 200,
       "Y": 150,
-      "ScaleX": 1.2,
+      "ScaleX": 1.5,
       "ScaleY": 1.2,
-      "Description": "A tall coatrack with a single, dusty hat hanging on it."
+      "Description": "A stack of old storage boxes. They look like they haven't been moved in years.",
+      "DoorTo": null,
+      "GroupId": null
     },
     {
-      "Name": "PLANT",
-      "X": 550,
-      "Y": 600,
-      "ScaleX": 1.4,
-      "ScaleY": 2,
-      "Description": "A potted plant. It looks suspiciously like plastic."
+      "Name": "B\nO\nX\nE\nS",
+      "X": 280,
+      "Y": 150,
+      "ScaleX": 1.5,
+      "ScaleY": 1.2,
+      "Description": "Another stack of storage boxes, covered in dust.",
+      "DoorTo": null,
+      "GroupId": null
+    },
+    {
+      "Name": "[INSULT GENERATOR]",
+      "X": 250,
+      "Y": 250,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": "INSULT_GENERATOR",
+      "DoorTo": null,
+      "GroupId": null
+    },
+    {
+      "Name": "T\nE\nR\nM\nI\nN\nA\nL",
+      "X": 350,
+      "Y": 350,
+      "ScaleX": 1.2,
+      "ScaleY": 1.2,
+      "Description": "TERMINAL_ROOM2",
+      "DoorTo": null,
+      "GroupId": null
     }
   ]
 } 

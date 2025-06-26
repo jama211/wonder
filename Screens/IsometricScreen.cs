@@ -78,6 +78,18 @@ namespace WonderGame.Screens
         private string _currentRoomName = "";
         private KeyboardState _previousKeyboardState;
 
+        // Random generator for insults
+        private readonly Random _random = new();
+        
+        // List of insults for the INSULT GENERATOR
+        private readonly string[] _insults = {
+            "You look like a spreadsheet with no formulas.",
+            "Your code has more bugs than a picnic.",
+            "I've seen better arguments in YouTube comments.",
+            "You smell like burnt RAM.",
+            "poo poo bum head"
+        };
+
         public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null)
         {
             _graphicsDevice = graphicsDevice;
@@ -204,11 +216,33 @@ namespace WonderGame.Screens
                 {
                     if (obj.BoundingBox.Intersects(playerBounds))
                     {
+                        // Handle special interactions first
+                        if (obj.Data.Description == "INSULT_GENERATOR")
+                        {
+                            var randomInsult = _insults[_random.Next(_insults.Length)];
+                            _interactionMessage = randomInsult;
+                            _messageTimer = 0;
+                            return;
+                        }
+                        
+                        if (obj.Data.Description == "TERMINAL_ROOM2")
+                        {
+                            // Create a temporary MainScreen with the log entry
+                            var tempMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                            tempMainScreen.AddLogEntry("> LOG ENTRY 442A:");
+                            tempMainScreen.AddLogEntry("> Subject 442A attempted use of 'smelly pants' insult. Insufficient offense. Subject devoured.");
+                            _nextScreen = tempMainScreen;
+                            return;
+                        }
+
+                        // Handle door interactions
                         if (obj.Data.DoorTo != null)
                         {
                             LoadRoom(obj.Data.DoorTo, _currentRoomName);
                             return;
                         }
+                        
+                        // Handle regular description interactions
                         if (obj.Data.Description != null)
                         {
                             _interactionMessage = obj.Data.Description;
