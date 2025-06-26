@@ -1,0 +1,64 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Use this prompt to remember what this project is and what it is about: "hey, take a look over this project, in its current state it is a text based game that boots up like an old computer, acts like a text adventure until you type look harder, at which poing it turns to a top down rpg with text-like symbols and text based rooms where objects are physically represented with text-like sprites that spell the items name. There is a map and you can move from room to room by interacting with the doors. Have a look around and let me know when you feel like you understand what's here."
+
+for the record, this is what sonnet said last time: 
+
+Perfect! I now have a comprehensive understanding of your project. Let me summarize what I've discovered:
+Wonder Game Overview
+This is a fascinating multi-layered text-based game with a brilliant concept! Here's what I understand:
+Game Flow & Architecture
+Boot Sequence (BootScreen.cs):
+Game starts with an authentic-looking Linux boot sequence (boot_sequence.txt - 735 lines of realistic kernel boot messages)
+Messages display rapidly with variable timing and occasional dramatic pauses
+After completion, transitions to the text adventure
+Text Adventure (MainScreen.cs):
+Classic terminal-style interface with green text on dark background
+Player can type commands like help, look, clear, exit
+The magic command "look harder" triggers the transformation to the RPG view
+Has a proper quit confirmation dialog
+Top-Down RPG (IsometricScreen.cs):
+Switches to a 2D overhead view where text literally becomes the graphics
+Objects are rendered as their text names (e.g., "TABLE", "FRIDGE")
+Player is represented by "@" symbol
+Movement with arrow keys, interaction with 'E'
+Clever Text-as-Graphics System
+The most innovative aspect is how objects are represented:
+Multi-line text objects: Like doors rendered vertically as:
+Apply to remembercont...
+R
+Word objects: Like "BANANA" spelled out with individual letters positioned to curve like an actual banana shape
+Scaling: Objects have ScaleX and ScaleY properties to make text bigger/smaller
+Collision detection: Text bounding boxes serve as collision boundaries
+Room System
+Rooms are JSON files defining object positions, scales, descriptions, and door connections
+Objects can be:
+Static items (TABLE, FRIDGE, LIGHTBULB)
+Doors with DoorTo property linking to other room files
+Grouped items (like banana letters with shared GroupId)
+Room Editor (RoomEditorScreen.cs)
+You've built a sophisticated level editor accessible with 'P' key:
+Visual object placement and resizing
+Property inspector for editing object details
+Save/revert functionality
+Drag & drop, duplication (Ctrl+D)
+Grid snapping and resize handles
+Technical Implementation
+MonoGame/XNA Framework for graphics
+Screen-based architecture with clean transitions
+Modular design with separate concerns (rendering, input, data)
+JSON serialization for room data
+Collision detection using bounding rectangles
+Text input handling for both terminal commands and editor
+Key Features I Noticed
+Authentic retro computing aesthetic
+Seamless transition between interface paradigms
+Text serves as both UI and game world graphics
+Built-in content creation tools
+Room interconnectivity system
+Proper state management and input handling
+This is genuinely innovative! The concept of text literally becoming the game world, combined with the nostalgic boot sequence intro, creates a unique experience that bridges classic text adventures and modern 2D RPGs. The editor shows this is designed for content creation and expansion.
+
