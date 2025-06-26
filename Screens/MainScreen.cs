@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -56,7 +57,8 @@ namespace WonderGame.Screens
         private string _currentTypingLine = "";
         private int _currentCharIndex = 0;
         private double _typewriterTimer = 0;
-        private const double _typewriterSpeed = 0.02; // 20ms per character = very fast but visible
+        private const double _baseTypewriterSpeed = 0.004; // 4ms base speed = 250 chars/sec
+        private readonly Random _typewriterRandom = new();
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -846,7 +848,11 @@ namespace WonderGame.Screens
             {
                 _typewriterTimer += gameTime.ElapsedGameTime.TotalSeconds;
                 
-                if (_typewriterTimer >= _typewriterSpeed)
+                // Calculate variable speed based on character type and add randomness
+                var currentChar = _currentTypingLine[_currentCharIndex];
+                var charSpeed = GetCharacterSpeed(currentChar);
+                
+                if (_typewriterTimer >= charSpeed)
                 {
                     _typewriterTimer = 0;
                     _currentCharIndex++;
@@ -859,6 +865,37 @@ namespace WonderGame.Screens
                         _currentCharIndex = 0;
                     }
                 }
+            }
+        }
+        
+        private double GetCharacterSpeed(char character)
+        {
+            // Base speed with some random variation (±50%)
+            var speed = _baseTypewriterSpeed * (0.5 + _typewriterRandom.NextDouble());
+            
+            // Adjust speed based on character type for more natural feel
+            switch (character)
+            {
+                case ' ':
+                    // Spaces are slightly faster (like AI processing words in chunks)
+                    return speed * 0.3;
+                case '.':
+                case '!':
+                case '?':
+                    // Punctuation gets a tiny pause (like AI considering sentence structure)
+                    return speed * 2.0;
+                case ',':
+                case ';':
+                case ':':
+                    // Minor punctuation gets small pause
+                    return speed * 1.5;
+                case '\n':
+                case '\r':
+                    // Line breaks are instant
+                    return 0.001;
+                default:
+                    // Regular characters with variation
+                    return speed;
             }
         }
         
