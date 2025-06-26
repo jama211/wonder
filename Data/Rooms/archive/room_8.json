@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "DOOR", "X": 400, "Y": 120, "ScaleX": 2.0, "ScaleY": 1.0, "DoorTo": "room_2" },
+    { "Name": "D\nO\nO\nR", "X": 690, "Y": 200, "DoorTo": "room_9" },
+    { "Name": "BARREL", "X": 200, "Y": 250, "Description": "A wooden barrel. It's empty." }
+  ]
+} 

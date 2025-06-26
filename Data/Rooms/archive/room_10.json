@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 120, "Y": 250, "DoorTo": "room_4" },
+    { "Name": "D\nO\nO\nR", "X": 690, "Y": 250, "DoorTo": "room_11" },
+    { "Name": "BOOKSHELF", "X": 300, "Y": 150, "ScaleX": 1.0, "ScaleY": 2.0, "Description": "The books are all titled 'Advanced ASCII Art'." }
+  ]
+} 

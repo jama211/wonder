@@ -1,0 +1,30 @@
+{
+  "Objects": [
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 120,
+      "Y": 200,
+      "DoorTo": "room_3"
+    },
+    {
+      "Name": "D\nO\nO\nR",
+      "X": 690,
+      "Y": 250,
+      "DoorTo": "room_10"
+    },
+    {
+      "Name": "C\nH\nE\nS\nT",
+      "X": 400,
+      "Y": 250,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "A large, locked chest. It seems very, very old."
+    },
+    {
+      "Name": "WINDOW",
+      "X": 580,
+      "Y": 100,
+      "Description": "A grimy window looking out into pitch blackness. You can't see a thing."
+    }
+  ]
+} 

@@ -46,6 +46,13 @@ namespace WonderGame.Screens
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
 
+            // SIMSYS boot lines displayed after the main boot sequence
+            _history.Add("BOOTING SIMSYS v1.7.44b");
+            _history.Add("Initialising subroutine: CORE MODULES... [OK]");
+            _history.Add("Engaging neural shell... [OK]");
+            _history.Add("Welcome, Operator.");
+            _history.Add("");
+            
             // New intro text after boot sequence
             _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
             _history.Add("> A terminal cursor blinks expectantly.");
@@ -331,7 +338,12 @@ namespace WonderGame.Screens
                     
                 case "clear":
                     _history.Clear();
-                    // Re-add the intro text after clearing
+                    // Re-add the SIMSYS boot lines and intro text after clearing
+                    _history.Add("BOOTING SIMSYS v1.7.44b");
+                    _history.Add("Initialising subroutine: CORE MODULES... [OK]");
+                    _history.Add("Engaging neural shell... [OK]");
+                    _history.Add("Welcome, Operator.");
+                    _history.Add("");
                     _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
                     _history.Add("> A terminal cursor blinks expectantly.");
                     break;

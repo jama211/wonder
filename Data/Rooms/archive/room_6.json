@@ -1,0 +1,7 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 690, "Y": 200, "DoorTo": "room_5" },
+    { "Name": "BED", "X": 200, "Y": 200, "ScaleX": 3.0, "ScaleY": 2.5, "Description": "A neatly made bed. It looks comfortable." },
+    { "Name": "LAMP", "X": 450, "Y": 150, "Description": "A small bedside lamp." }
+  ]
+} 

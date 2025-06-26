@@ -1,0 +1,6 @@
+{
+  "Objects": [
+    { "Name": "D\nO\nO\nR", "X": 120, "Y": 250, "DoorTo": "room_11" },
+    { "Name": "THRONE", "X": 400, "Y": 200, "ScaleX": 2.0, "ScaleY": 2.0, "Description": "An imposing throne made of what looks like solidified shadow." }
+  ]
+} 
