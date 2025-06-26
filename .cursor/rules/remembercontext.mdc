@@ -3,6 +3,8 @@ description:
 globs: 
 alwaysApply: true
 ---
+Make sure you go through and read/do all the following before processing the first request in any new session: 
+
 Use this prompt to remember what this project is and what it is about: "hey, take a look over this project, in its current state it is a text based game that boots up like an old computer, acts like a text adventure until you type look harder, at which poing it turns to a top down rpg with text-like symbols and text based rooms where objects are physically represented with text-like sprites that spell the items name. There is a map and you can move from room to room by interacting with the doors. Have a look around and let me know when you feel like you understand what's here."
 
 for the record, this is what sonnet said last time: 
@@ -64,6 +66,8 @@ This is genuinely innovative! The concept of text literally becoming the game wo
 
 
 ------ 
+
+Next, do a comprehensive scan of all the code files and folders to get the complete picture of the project. 
 
 Oh, and some final things: 
 - Please don't automatically add, commit and push changes with a reasonable commit message unless I ask you to, which I'll do by asking you to "push those changes" 
