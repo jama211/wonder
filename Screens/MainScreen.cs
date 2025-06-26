@@ -24,6 +24,7 @@ namespace WonderGame.Screens
         private readonly List<string> _history = new();
         private readonly StringBuilder _currentInput = new();
         private KeyboardState _previousKeyboardState;
+        private MouseState _previousMouseState;
 
         private double _cursorTimer;
         private bool _cursorVisible;
@@ -65,6 +66,7 @@ namespace WonderGame.Screens
             _history.Add("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
             
             _previousKeyboardState = Keyboard.GetState();
+            _previousMouseState = Mouse.GetState();
         }
 
         public IScreen? GetNextScreen()
@@ -80,6 +82,7 @@ namespace WonderGame.Screens
         public void Update(GameTime gameTime)
         {
             var keyboardState = Keyboard.GetState();
+            var mouseState = Mouse.GetState();
 
             if (_currentState == ScreenState.ConfirmingQuit)
             {
@@ -95,7 +98,7 @@ namespace WonderGame.Screens
                 else
                 {
                     HandleSpecialKeys();
-                    HandleScrolling(keyboardState);
+                    HandleScrolling(keyboardState, mouseState);
                     _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
                     if (_cursorTimer > 0.5)
                     {
@@ -105,6 +108,7 @@ namespace WonderGame.Screens
                 }
             }
             _previousKeyboardState = keyboardState;
+            _previousMouseState = mouseState;
         }
 
         public void Draw(GameTime gameTime)
@@ -137,6 +141,7 @@ namespace WonderGame.Screens
             if (_currentState == ScreenState.Normal)
             {
                 var command = _currentInput.ToString();
+                _history.Add(""); // Add spacing above the user prompt
                 _history.Add($">> {command}");
                 _history.Add(""); // Add spacing between input and response
                 ProcessCommand(command);
@@ -297,20 +302,21 @@ namespace WonderGame.Screens
             return lines.Count > 0 ? lines : new List<string> { "" };
         }
         
-        private void HandleScrolling(KeyboardState keyboardState)
+        private void HandleScrolling(KeyboardState keyboardState, MouseState mouseState)
         {
             var scrollSpeed = 3f;
+            var viewport = _graphicsDevice.Viewport;
+            var lineHeight = _font.LineSpacing;
+            var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
+            var maxScroll = Math.Max(0, _wrappedLines.Count - visibleLineCount);
             
+            // Keyboard scrolling
             if (keyboardState.IsKeyDown(Keys.PageUp) && !_previousKeyboardState.IsKeyDown(Keys.PageUp))
             {
                 _scrollOffset = Math.Max(0, _scrollOffset - scrollSpeed);
             }
             else if (keyboardState.IsKeyDown(Keys.PageDown) && !_previousKeyboardState.IsKeyDown(Keys.PageDown))
             {
-                var viewport = _graphicsDevice.Viewport;
-                var lineHeight = _font.LineSpacing;
-                var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
-                var maxScroll = Math.Max(0, _wrappedLines.Count - visibleLineCount);
                 _scrollOffset = Math.Min(maxScroll, _scrollOffset + scrollSpeed);
             }
             else if (keyboardState.IsKeyDown(Keys.Home) && !_previousKeyboardState.IsKeyDown(Keys.Home))
@@ -319,10 +325,22 @@ namespace WonderGame.Screens
             }
             else if (keyboardState.IsKeyDown(Keys.End) && !_previousKeyboardState.IsKeyDown(Keys.End))
             {
-                var viewport = _graphicsDevice.Viewport;
-                var lineHeight = _font.LineSpacing;
-                var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
                 _scrollOffset = Math.Max(0, _wrappedLines.Count - visibleLineCount);
+            }
+            
+            // Mouse wheel scrolling
+            var scrollWheelDelta = mouseState.ScrollWheelValue - _previousMouseState.ScrollWheelValue;
+            if (scrollWheelDelta != 0)
+            {
+                var mouseScrollSpeed = 2f;
+                if (scrollWheelDelta > 0) // Scroll up
+                {
+                    _scrollOffset = Math.Max(0, _scrollOffset - mouseScrollSpeed);
+                }
+                else // Scroll down
+                {
+                    _scrollOffset = Math.Min(maxScroll, _scrollOffset + mouseScrollSpeed);
+                }
             }
         }
 
@@ -431,6 +449,7 @@ namespace WonderGame.Screens
                     _history.Add("> Scroll controls:");
                     _history.Add(">   PageUp/PageDown - Scroll through text history");
                     _history.Add(">   Home/End - Jump to top/bottom of history");
+                    _history.Add(">   Mouse wheel - Scroll through text history");
                     break;
                     
                 case "look":
