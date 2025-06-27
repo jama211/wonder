@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using WonderGame.Screens;
 using WonderGame.Core;
+using WonderGame.Tests;
 
 namespace WonderGame;
 
@@ -98,8 +99,17 @@ public class Program : Game
 public static class Launcher
 {
     [System.STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
+        // Check if we're in test mode
+        if (args.Length > 0 && args[0] == "run-tests")
+        {
+            var testRunner = new CommandTestRunner();
+            testRunner.RunAllTests();
+            return;
+        }
+
+        // Normal game mode
         using (var game = new Program())
             game.Run();
     }

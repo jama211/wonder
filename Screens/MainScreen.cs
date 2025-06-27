@@ -519,8 +519,8 @@ namespace WonderGame.Screens
             if (string.IsNullOrWhiteSpace(trimmedInput)) return;
 
             var parts = trimmedInput.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var verb = parts[0];
-            var args = parts.Skip(1).ToArray();
+            var verb = NormalizeCommand(parts[0]);
+            var args = FilterCommonWords(parts.Skip(1).ToArray());
 
             switch (verb)
             {
@@ -558,9 +558,115 @@ namespace WonderGame.Screens
                     break;
                     
                 default:
-                    QueueOutput($"> Unknown command: '{verb}'{(args.Length > 0 ? $" {string.Join(" ", args)}" : "")}");
+                    QueueOutput($"> Unknown command: '{parts[0]}'{(args.Length > 0 ? $" {string.Join(" ", args)}" : "")}");
                     break;
             }
+        }
+
+        // Normalize command synonyms to canonical commands
+        private string NormalizeCommand(string command)
+        {
+            var commandSynonyms = new Dictionary<string, string>
+            {
+                // Look synonyms
+                ["observe"] = "look",
+                ["see"] = "look",
+                ["view"] = "look",
+                ["watch"] = "look",
+                ["peek"] = "look",
+                ["glance"] = "look",
+                
+                // Examine synonyms
+                ["inspect"] = "examine",
+                ["check"] = "examine",
+                ["study"] = "examine",
+                ["investigate"] = "examine",
+                ["analyze"] = "examine",
+                ["read"] = "examine",
+                
+                // Touch synonyms
+                ["feel"] = "touch",
+                ["grab"] = "touch",
+                ["hold"] = "touch",
+                ["handle"] = "touch",
+                ["press"] = "touch",
+                
+                // Exit synonyms
+                ["leave"] = "exit",
+                ["escape"] = "exit",
+                ["q"] = "quit",
+                
+                // Clear synonyms
+                ["cls"] = "clear",
+                ["clr"] = "clear",
+                
+                // Help synonyms
+                ["?"] = "help",
+                ["commands"] = "help",
+                
+                // Say synonyms
+                ["speak"] = "say",
+                ["talk"] = "say",
+                ["tell"] = "say",
+                ["shout"] = "say",
+                ["whisper"] = "say"
+            };
+
+            return commandSynonyms.TryGetValue(command, out var canonical) ? canonical : command;
+        }
+
+        // Filter out common prepositions, articles, and filler words that don't affect meaning
+        private string[] FilterCommonWords(string[] words)
+        {
+            var fillerWords = new HashSet<string> 
+            { 
+                "at", "the", "a", "an", "on", "in", "with", "to", "into", "onto", "upon", "from", "of", "over", "under", "around"
+            };
+            
+            return words.Where(word => !fillerWords.Contains(word)).ToArray();
+        }
+
+        // Find recognized objects in the command, regardless of position
+        private string FindRecognizedObject(string[] words)
+        {
+            // Define all known objects and their synonyms
+            var knownObjects = new Dictionary<string, List<string>>
+            {
+                ["sign"] = new() { "sign", "poster", "plaque" },
+                ["terminal"] = new() { "terminal", "computer", "screen", "monitor", "console" },
+                ["bunk"] = new() { "bunk", "bed", "cot" },
+                ["walls"] = new() { "wall", "walls" },
+                ["post-it"] = new() { "post-it", "postit", "note", "post-it note", "postit note", "sticky note", "yellow note" },
+                ["room"] = new() { "room", "area", "chamber", "space" }
+            };
+
+            // Try to find multi-word objects first (like "post-it note")
+            var fullText = string.Join(" ", words);
+            foreach (var kvp in knownObjects)
+            {
+                foreach (var synonym in kvp.Value.OrderByDescending(s => s.Length)) // Check longer phrases first
+                {
+                    if (fullText.Contains(synonym))
+                    {
+                        return kvp.Key; // Return the canonical name
+                    }
+                }
+            }
+
+            // If no multi-word match, try individual words
+            foreach (var word in words)
+            {
+                foreach (var kvp in knownObjects)
+                {
+                    if (kvp.Value.Contains(word))
+                    {
+                        return kvp.Key;
+                    }
+                }
+            }
+
+            // If nothing found, return the filtered args as before
+            return words.Length > 0 ? string.Join(" ", words) : "";
         }
 
         private void HandleHelp()
@@ -601,8 +707,8 @@ namespace WonderGame.Screens
             }
             else
             {
-                // Look at specific object - treat same as examine
-                var target = string.Join(" ", args);
+                // Look at specific object - use smart object recognition
+                var target = FindRecognizedObject(args);
                 ExamineObject(target);
             }
         }
@@ -615,7 +721,7 @@ namespace WonderGame.Screens
                 return;
             }
 
-            var target = string.Join(" ", args);
+            var target = FindRecognizedObject(args);
             ExamineObject(target);
         }
 
@@ -627,7 +733,7 @@ namespace WonderGame.Screens
                 return;
             }
 
-            var target = string.Join(" ", args);
+            var target = FindRecognizedObject(args);
             TouchObject(target);
         }
 

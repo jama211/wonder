@@ -69,6 +69,36 @@ dotnet run
 - Sacrifice a rubber duck to the debugging deities
 - Check that your graphics drivers aren't from the stone age
 
+## 🧪 Test Suite
+
+Wonder Game includes a comprehensive test suite for the enhanced command processing system. You can run it anytime to verify that all the smart command parsing features work correctly.
+
+**Run the tests:**
+```bash
+dotnet run -- run-tests
+```
+
+**What gets tested:**
+- ✅ **Preposition filtering** - `"look at bunk"` works the same as `"look bunk"`
+- ✅ **Command synonyms** - `"observe"` → `"look"`, `"inspect"` → `"examine"`, `"feel"` → `"touch"`
+- ✅ **Object recognition** - `"computer"` → `"terminal"`, `"bed"` → `"bunk"`, `"note"` → `"post-it"`
+- ✅ **Case insensitivity** - `"LOOK AT THE TERMINAL"` works perfectly
+- ✅ **Complex phrases** - `"inspect that yellow sticky note on the computer"` parses correctly
+
+**Sample output:**
+```
+🧪 Wonder Game Command Processing Tests
+✅ Preposition filtering works
+✅ Command synonyms work  
+✅ Object synonyms work
+✅ Case insensitive normalization works
+
+📊 Success Rate: 100.0%
+🎯 Summary: Enhanced command parsing is working perfectly!
+```
+
+The test suite requires no external dependencies and runs entirely through the standard .NET runtime. Perfect for validating functionality during development or after making changes!
+
 ## 🎮 How to Play
 
 1. **Boot Sequence**: Watch the authentic Linux boot messages scroll by. Resist the urge to press Ctrl+C.
@@ -189,7 +219,13 @@ Just remember:
 
 ## 📜 License
 
-This project is licensed under the "Do What Makes You Happy" license. Share it, modify it, enjoy it!
+Copyright (c) 2024 Jamie Williamson. All rights reserved.
+
+<!--
+This software and associated documentation files are the proprietary 
+property of Jamie Williamson. No part may be reproduced, distributed, or 
+transmitted in any form without prior written permission.
+-->
 
 ---
 
