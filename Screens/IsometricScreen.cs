@@ -102,7 +102,7 @@ namespace WonderGame.Screens
         // Random flavor text while walking
         private int _stepCount = 0;
         private readonly string[] _flavorTexts = {
-            "You feel like someone is watching… but from inside your pancreas.",
+            "You feel like someone is watching... but from inside your pancreas.",
             "The word \"lunch\" drifts through your head, uninvited.",
             "You step on something. It apologizes.",
             "Somewhere, a duck sneezes. You know this with certainty.",
@@ -409,8 +409,8 @@ namespace WonderGame.Screens
                 {
                     _stepCount++;
                     
-                    // Show random flavor text roughly every 15-25 steps
-                    if (_stepCount > 10 && _random.Next(0, 20) == 0)
+                    // Show random flavor text much more rarely - roughly every 200-400 steps
+                    if (_stepCount > 100 && _stepCount % 50 == 0 && _random.Next(0, 8) == 0)
                     {
                         var flavorText = _flavorTexts[_random.Next(_flavorTexts.Length)];
                         _interactionMessage = flavorText;
