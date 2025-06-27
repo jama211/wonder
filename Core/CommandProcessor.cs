@@ -148,7 +148,7 @@ namespace WonderGame.Core
                 ["terminal"] = new() { "terminal", "computer", "screen", "monitor", "console" },
                 ["bunk"] = new() { "bunk", "bed", "cot" },
                 ["walls"] = new() { "wall", "walls" },
-                ["post-it"] = new() { "post-it", "postit", "note", "post-it note", "postit note", "sticky note", "yellow note" },
+                ["post-it"] = new() { "post-it", "postit", "post it", "note", "post-it note", "postit note", "sticky note", "yellow note" },
                 ["room"] = new() { "room", "area", "chamber", "space" }
             };
 
