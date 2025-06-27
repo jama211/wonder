@@ -452,14 +452,5 @@ namespace WonderGame.Screens
             
             _previousKeyboardState = keyboardState;
         }
-
-
-
-
-
-
-
-
-
     }
 } 

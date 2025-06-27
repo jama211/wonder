@@ -98,6 +98,26 @@ namespace WonderGame.Screens
         private bool _showingSayPrompt = false;
         // Keep a reference to the original MainScreen to preserve its state
         private readonly MainScreen _originalMainScreen;
+        
+        // Random flavor text while walking
+        private int _stepCount = 0;
+        private readonly string[] _flavorTexts = {
+            "You feel like someone is watching… but from inside your pancreas.",
+            "The word \"lunch\" drifts through your head, uninvited.",
+            "You step on something. It apologizes.",
+            "Somewhere, a duck sneezes. You know this with certainty.",
+            "Your left sock feels judgmental.",
+            "A memory of purple flickers behind your eyes.",
+            "You smell toast, but there is no toast.",
+            "Your shadow seems slightly out of sync.",
+            "The universe hiccups. You felt that.",
+            "A distant typewriter clicks, spelling your name backwards.",
+            "Your teeth taste like Thursday.",
+            "Something small scurries across your thoughts.",
+            "The number 7 feels particularly smug today.",
+            "You remember a door you've never seen.",
+            "Your reflection winks first."
+        };
 
         public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, MainScreen originalMainScreen, KeyboardState? previousKeyboardState = null)
         {
@@ -312,6 +332,8 @@ namespace WonderGame.Screens
                                 newMainScreen.AddLogEntry("CONNECTION LOST.");
                                 newMainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
                                 newMainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
+                                newMainScreen.AddLogEntry("Thanks for playing.");
+                                newMainScreen.AddLogEntry("Type `exit` to quit the simulation.");
                                 _nextScreen = newMainScreen;
                                 return;
                             }
@@ -358,6 +380,7 @@ namespace WonderGame.Screens
                 
                 var playerSize = _font.MeasureString("@");
                 var originalPosition = _playerPosition;
+                bool playerMoved = false;
 
                 _playerPosition.X += moveAmount.X;
                 var nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)originalPosition.Y, (int)playerSize.X, (int)playerSize.Y);
@@ -365,12 +388,34 @@ namespace WonderGame.Screens
                 {
                     _playerPosition.X = originalPosition.X;
                 }
+                else
+                {
+                    playerMoved = true;
+                }
 
                 _playerPosition.Y += moveAmount.Y;
                 nextPlayerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)playerSize.X, (int)playerSize.Y);
                 if (_collisionRects.Any(rect => rect.Intersects(nextPlayerBounds)))
                 {
                     _playerPosition.Y = originalPosition.Y;
+                }
+                else
+                {
+                    playerMoved = true;
+                }
+
+                // Track steps and occasionally show flavor text
+                if (playerMoved)
+                {
+                    _stepCount++;
+                    
+                    // Show random flavor text roughly every 15-25 steps
+                    if (_stepCount > 10 && _random.Next(0, 20) == 0)
+                    {
+                        var flavorText = _flavorTexts[_random.Next(_flavorTexts.Length)];
+                        _interactionMessage = flavorText;
+                        _messageTimer = 0;
+                    }
                 }
             }
         }

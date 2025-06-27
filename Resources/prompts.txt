@@ -32,3 +32,56 @@ Hi there! Currently, isometricscreen has everything for the scene inside of it. 
 ...
 
 I think I'd like a room editor. This is going to be a complicated task, so when you're done, make me a PR so I can review. If, inside any isometric room, I press "p", it should open a new window that is a point and click application that shows the room, except there should be draggable points around each room object. If I click and hold on the center of an object, I can move it with the mouse and place it down anywhere. If I pull on the corners, I can change it's size. in the case of the banana, you should add a bounding box around the whole thing that updates each letter accordingly to scale. This window should have a "revert" button, that reverts all changes, and a "save" button (with confirm dialogue) - that saves the changes to the relevant room's json file. if closed, the game will re-load the existing level accordingly. And you know what? add any other quality of life features you think I'd like. At least 3. 
+
+
+
+
+---- 
+
+other sessions were made... 
+
+----
+
+
+
+
+
+
+Hi! This is the final session for my project. Everything is working up through Room 3, including the dragon puzzle, the text mode transitions, and the end-of-game text sequence after the player exits the final room. I’ve also already handled testing, bugfixing, and the README separately, so this last prompt is focused on wrapping up with two small final polish items:
+
+---
+
+1. End Text Additions  
+At the very end of the game (after the final message that shows up when the player defeats the dragon and exits the final room), add the following lines:
+
+Thanks for playing.  
+Type `exit` to quit the simulation.
+
+This should appear *after* the current final message:
+CONNECTION LOST.  
+TERMINAL CORRUPTION DETECTED.  
+Thank you for participating in System Glitch: Episode 0.
+
+So the full ending should look like this:
+
+CONNECTION LOST.  
+TERMINAL CORRUPTION DETECTED.  
+Thank you for participating in System Glitch: Episode 0.  
+Thanks for playing.  
+Type `exit` to quit the simulation.
+
+---
+
+2. Optional Flavor Text Enhancements  
+Add a few extra optional flavor messages that randomly trigger while the player is walking around in RPG mode (any room). These should be brief, weird, or silly thoughts that add texture to the experience. Use your judgment to insert them at low frequency (e.g. once every 10–20 steps). Examples:
+
+- You feel like someone is watching… but from inside your pancreas.
+- The word “lunch” drifts through your head, uninvited.
+- You step on something. It apologizes.
+- Somewhere, a duck sneezes. You know this with certainty.
+
+Feel free to add more lines in this style.
+
+---
+
+Please implement these last two enhancements. Once done, this project is complete. Well, complete in the sense that it is completable, I have some bugs for you to fix next probably but we can in our heads call this version 0.1. Thank you! 
