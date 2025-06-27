@@ -82,137 +82,8 @@ namespace WonderGame.Screens
         // Random generator for insults
         private readonly Random _random = new();
         
-        // List of insults for the INSULT GENERATOR
-        private readonly string[] _insults = {
-            // Programming/Tech insults
-            "You look like a spreadsheet with no formulas.",
-            "Your code has more bugs than a picnic.",
-            "I've seen better arguments in YouTube comments.",
-            "You smell like burnt RAM.",
-            "Your programming skills are like Internet Explorer - slow and outdated.",
-            "You're the human equivalent of a buffer overflow.",
-            "Your brain runs on Internet Explorer 6.",
-            "You're like a null pointer exception - completely useless.",
-            "Your IQ is lower than your Git commit count.",
-            "You code like you're still using punch cards.",
-            "Your debugging skills are about as good as a chocolate teapot.",
-            "You're the reason Stack Overflow has a downvote button.",
-            "Your code looks like it was written by a caffeinated monkey.",
-            "You're like a memory leak - slowly making everything worse.",
-            "Your algorithms have the efficiency of a potato.",
-            "You write code like you're paid by the semicolon.",
-            "Your variable names are more confusing than IKEA instructions.",
-            "You're the human equivalent of a 404 error.",
-            "Your CSS is more broken than your promises.",
-            "You debug like you're playing whack-a-mole blindfolded.",
-            
-            // General silly insults
-            "poo poo bum head",
-            "You're about as useful as a screen door on a submarine.",
-            "Your face looks like it caught fire and someone tried to put it out with a fork.",
-            "You're so dense, light bends around you.",
-            "You have the personality of a wet mop.",
-            "You're like a parking meter - annoying and nobody wants to pay attention to you.",
-            "Your brain is like a browser with 47 tabs open, 5 of them are frozen.",
-            "You're the reason aliens won't visit Earth.",
-            "You have the charm of a paper cut.",
-            "Your ideas are about as sharp as a bowling ball.",
-            "You're like a human participation trophy.",
-            "You have the attention span of a goldfish with ADHD.",
-            "You're about as bright as a black hole.",
-            "Your common sense is rarer than a unicorn.",
-            "You're like a broken pencil - pointless.",
-            "You have the grace of a drunk giraffe.",
-            "Your logic is more twisted than a pretzel factory.",
-            "You're like a human speed bump.",
-            "You have the organizational skills of a tornado.",
-            "You're about as smooth as chunky peanut butter.",
-            "Your wit is duller than a butter knife.",
-            "You're like a soup sandwich - messy and pointless.",
-            "You have the coordination of a newborn giraffe on ice.",
-            "You're about as helpful as a chocolate fireguard.",
-            "Your timing is worse than a broken clock.",
-            "You're like a human traffic jam.",
-            "You have the fashion sense of a scarecrow.",
-            "You're about as subtle as a brick through a window.",
-            "Your social skills are like a fish out of water.",
-            "You're like a human allergen.",
-            "You have the enthusiasm of a sloth on sedatives.",
-            "You're about as exciting as watching paint dry.",
-            "Your creativity is more stale than week-old bread.",
-            "You're like a human paperweight.",
-            "You have the energy of a dead battery.",
-            "You're about as sharp as a marble.",
-            "Your ideas are flatter than roadkill.",
-            "You're like a human snooze button.",
-            "You have the grace of a brick in a china shop.",
-            "You're about as useful as a glass hammer.",
-            "Your personality is drier than toast.",
-            "You're like a human headache.",
-            "You have the charm of a root canal.",
-            "You're about as interesting as watching grass grow.",
-            "Your jokes are older than the pyramids.",
-            "You're like a human speed limit.",
-            "You have the appeal of expired milk.",
-            "You're about as welcome as a skunk at a garden party.",
-            "Your conversation skills are like a deflated balloon.",
-            "You're like a human rain cloud.",
-            "You have the subtlety of a freight train.",
-            "You're about as smooth as sandpaper.",
-            "Your dance moves look like you're being electrocuted.",
-            "You're like a human mosquito.",
-            "You have the fashion sense of a blind penguin.",
-            "You're about as graceful as a bull in a china shop.",
-            "Your singing voice sounds like a cat in a blender.",
-            "You're like a human alarm clock that nobody wants to hear.",
-            "You have the cooking skills of a house fire.",
-            "You're about as coordinated as a three-legged cat.",
-            "Your driving is scarier than a horror movie.",
-            "You're like a human wet blanket.",
-            "You have the organizational skills of a hurricane.",
-            "You're about as reliable as a chocolate teapot.",
-            "Your memory is worse than a goldfish with amnesia.",
-            "You're like a human speed bump on the highway of life.",
-            "You have the social awareness of a brick.",
-            "You're about as helpful as a screen door on a spaceship.",
-            "Your common sense is on permanent vacation.",
-            "You're like a human typo.",
-            "You have the grace of a drunk elephant.",
-            "You're about as sharp as a bowling ball.",
-            "Your ideas are more scattered than dandelion seeds.",
-            "You're like a human puzzle with half the pieces missing.",
-            "You have the attention span of a caffeinated squirrel.",
-            "You're about as smooth as gravel.",
-            "Your logic is more twisted than a tornado.",
-            "You're like a human glitch in the matrix.",
-            "You have the coordination of a drunk octopus.",
-            "You're about as useful as a solar-powered flashlight.",
-            "Your timing is worse than a broken stopwatch.",
-            "You're like a human pothole.",
-            "You have the grace of a falling piano.",
-            "You're about as bright as a burnt-out lightbulb.",
-            "Your conversation is more boring than watching cement dry.",
-            "You're like a human speed limit in the fast lane.",
-            "You have the charm of a rusty nail.",
-            "You're about as welcome as a porcupine in a balloon factory.",
-            "Your ideas are more stale than yesterday's donuts.",
-            "You're like a human hiccup.",
-            "You have the enthusiasm of a wet sock.",
-            "You're about as exciting as tax paperwork.",
-            "Your creativity is flatter than a pancake under a steamroller.",
-            "You're like a human paper jam.",
-            "You have the energy of a dying flashlight.",
-            "You're about as sharp as a butter knife made of jello.",
-            "Your wit is duller than dishwater.",
-            "You're like a human commercial break.",
-            "You have the grace of a falling refrigerator.",
-            "You're about as useful as a fork in a soup kitchen.",
-            "Your personality is drier than the Sahara desert.",
-            "You're like a human Monday morning.",
-            "You have the appeal of a dentist appointment.",
-            "You're about as smooth as a cheese grater.",
-            "Your jokes are more stale than month-old crackers."
-        };
+        // List of insults for the INSULT GENERATOR - loaded from file
+        private readonly string[] _insults;
 
         // Dragon state for Room 3
         private bool _dragonDefeated = false;
@@ -250,7 +121,36 @@ namespace WonderGame.Screens
             _originalMainScreen = originalMainScreen;
             _previousKeyboardState = previousKeyboardState ?? Keyboard.GetState();
             
+            // Load insults from file
+            _insults = LoadInsultsFromFile();
+            
             LoadRoom(startingRoomName, null);
+        }
+        
+        private string[] LoadInsultsFromFile()
+        {
+            try
+            {
+                var path = Path.Combine("Data", "insults.txt");
+                if (File.Exists(path))
+                {
+                    return File.ReadAllLines(path)
+                        .Where(line => !string.IsNullOrWhiteSpace(line))
+                        .ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading insults file: {ex.Message}");
+            }
+            
+            // Fallback insults if file loading fails
+            return new[]
+            {
+                "You look like a spreadsheet with no formulas.",
+                "Your code has more bugs than a picnic.",
+                "poo poo bum head"
+            };
         }
         
         private void PositionPlayerAtEntrance(string? comingFromRoomFileName)
