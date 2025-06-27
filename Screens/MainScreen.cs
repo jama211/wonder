@@ -38,12 +38,11 @@ namespace WonderGame.Screens
         private ScreenState _currentState = ScreenState.Normal;
         private int _selectedQuitOption = 0; // 0 for Confirm, 1 for Cancel
 
-        // Interaction tracking for "look harder" unlock
-        private readonly HashSet<string> _interactedObjects = new();
-        private bool _lookHarderUnlocked = false;
-        private bool _hasSeenPostItNote = false;
+        // Command processor
+        private readonly CommandProcessor _commandProcessor;
         
-        // Text rendering and scrolling
+        // Text handling utilities
+        private readonly TextHandlingUtils _textUtils;
         private float _scrollOffset = 0f;
         private readonly List<string> _wrappedLines = new();
         private bool _userHasScrolled = false;
@@ -51,14 +50,6 @@ namespace WonderGame.Screens
         // Command history
         private readonly List<string> _commandHistory = new();
         private int _commandHistoryIndex = -1;
-        
-        // Typewriter effect for output
-        private readonly Queue<string> _pendingLines = new();
-        private string _currentTypingLine = "";
-        private int _currentCharIndex = 0;
-        private double _typewriterTimer = 0;
-        private const double _baseTypewriterSpeed = 0.004; // 4ms base speed = 250 chars/sec
-        private readonly Random _typewriterRandom = new();
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -67,18 +58,28 @@ namespace WonderGame.Screens
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
 
+            // Initialize text handling utilities
+            _textUtils = new TextHandlingUtils(font);
+            _textUtils.LineCompleted += OnLineCompleted;
+
+            // Initialize command processor
+            _commandProcessor = new CommandProcessor(
+                _textUtils.QueueOutput,
+                () => new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState, this)
+            );
+
             // SIMSYS boot lines displayed after the main boot sequence - queue for typewriter effect
-            QueueOutput("BOOTING SIMSYS v1.7.44b");
-            QueueOutput("Initialising subroutine: CORE MODULES... [OK]");
-            QueueOutput("Engaging neural shell... [OK]");
-            QueueOutput("Welcome, Operator.");
-            QueueOutput("");
+            _textUtils.QueueOutput("BOOTING SIMSYS v1.7.44b");
+            _textUtils.QueueOutput("Initialising subroutine: CORE MODULES... [OK]");
+            _textUtils.QueueOutput("Engaging neural shell... [OK]");
+            _textUtils.QueueOutput("Welcome, Operator.");
+            _textUtils.QueueOutput("");
             
             // New intro text after boot sequence
-            QueueOutput("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
-            QueueOutput("> A terminal cursor blinks expectantly.");
-            QueueOutput("> Perhaps you should 'look' around to get your bearings.");
-            QueueOutput("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
+            _textUtils.QueueOutput("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
+            _textUtils.QueueOutput("> A terminal cursor blinks expectantly.");
+            _textUtils.QueueOutput("> Perhaps you should 'look' around to get your bearings.");
+            _textUtils.QueueOutput("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
             
             _previousKeyboardState = Keyboard.GetState();
             _previousMouseState = Mouse.GetState();
@@ -91,7 +92,12 @@ namespace WonderGame.Screens
 
         public void AddLogEntry(string logEntry)
         {
-            QueueOutput(logEntry);
+            _textUtils.QueueOutput(logEntry);
+        }
+
+        private void OnLineCompleted(string line)
+        {
+            _history.Add(line);
         }
 
         public void Update(GameTime gameTime)
@@ -114,7 +120,7 @@ namespace WonderGame.Screens
                 {
                     HandleSpecialKeys();
                     HandleScrolling(keyboardState, mouseState);
-                    UpdateTypewriter(gameTime);
+                    _textUtils.UpdateTypewriter(gameTime);
                     _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
                     if (_cursorTimer > 0.5)
                     {
@@ -172,7 +178,22 @@ namespace WonderGame.Screens
                 _history.Add(""); // Add spacing between input and response
                 
                 // System responses use the typewriter effect
-                ProcessCommand(command);
+                var nextScreen = _commandProcessor.ProcessCommand(command);
+                if (nextScreen != null)
+                {
+                    _nextScreen = nextScreen;
+                }
+                
+                // Handle special commands that need MainScreen-specific logic
+                if (command.Trim().ToLowerInvariant() == "clear")
+                {
+                    _history.Clear();
+                    _wrappedLines.Clear();
+                    _scrollOffset = 0f;
+                    _userHasScrolled = false;
+                    _textUtils.ClearTypewriter();
+                }
+                
                 _currentInput.Clear();
                 _userHasScrolled = false; // Reset scroll flag so new content auto-scrolls
             }
@@ -185,8 +206,10 @@ namespace WonderGame.Screens
             var availableWidth = viewport.Width - (margin * 2);
             var lineHeight = _font.LineSpacing;
             
-            // Rebuild wrapped lines when needed
-            RebuildWrappedLines(availableWidth);
+            // Rebuild wrapped lines using text utils
+            var currentPartialLine = _textUtils.GetCurrentPartialLine();
+            _wrappedLines.Clear();
+            _wrappedLines.AddRange(_textUtils.RebuildWrappedLines(_history, availableWidth, currentPartialLine));
             
             var visibleLineCount = (int)((viewport.Height - 60) / lineHeight); // Leave space for input
             var totalLines = _wrappedLines.Count;
@@ -194,7 +217,7 @@ namespace WonderGame.Screens
             // Auto-scroll to bottom if we have more lines than can fit AND user hasn't manually scrolled
             if (totalLines > visibleLineCount && !_userHasScrolled)
             {
-                _scrollOffset = totalLines - visibleLineCount;
+                _scrollOffset = _textUtils.CalculateAutoScrollOffset(totalLines, visibleLineCount);
             }
             
             // Draw visible lines
@@ -225,7 +248,7 @@ namespace WonderGame.Screens
             }
 
             var inputPrompt = $">> {filteredInput}";
-            var inputLines = WrapText(inputPrompt, availableWidth);
+            var inputLines = _textUtils.WrapText(inputPrompt, availableWidth);
             
             // Draw input lines
             var inputStartY = inputY;
@@ -245,149 +268,24 @@ namespace WonderGame.Screens
             }
         }
         
-        private void RebuildWrappedLines(float availableWidth)
-        {
-            _wrappedLines.Clear();
-            foreach (var line in _history)
-            {
-                var wrappedLines = WrapText(line, availableWidth);
-                _wrappedLines.AddRange(wrappedLines);
-            }
-            
-            // Add the currently typing line if there is one
-            if (!string.IsNullOrEmpty(_currentTypingLine) && _currentCharIndex > 0)
-            {
-                var partialText = _currentTypingLine.Substring(0, _currentCharIndex);
-                var wrappedLines = WrapText(partialText, availableWidth);
-                _wrappedLines.AddRange(wrappedLines);
-            }
-        }
-        
-        private List<string> WrapText(string text, float maxWidth)
-        {
-            var lines = new List<string>();
-            if (string.IsNullOrEmpty(text))
-            {
-                lines.Add("");
-                return lines;
-            }
-            
-            var words = text.Split(' ');
-            var currentLine = new StringBuilder();
-            
-            foreach (var word in words)
-            {
-                var testLine = currentLine.Length == 0 ? word : $"{currentLine} {word}";
-                var testSize = _font.MeasureString(testLine);
-                
-                if (testSize.X <= maxWidth)
-                {
-                    if (currentLine.Length > 0)
-                        currentLine.Append(" ");
-                    currentLine.Append(word);
-                }
-                else
-                {
-                    if (currentLine.Length > 0)
-                    {
-                        lines.Add(currentLine.ToString());
-                        currentLine.Clear();
-                    }
-                    
-                    // Handle very long words that don't fit on a single line
-                    if (_font.MeasureString(word).X > maxWidth)
-                    {
-                        // Break the word into chunks
-                        var chars = word.ToCharArray();
-                        var chunk = new StringBuilder();
-                        
-                        foreach (var ch in chars)
-                        {
-                            var testChunk = $"{chunk}{ch}";
-                            if (_font.MeasureString(testChunk).X <= maxWidth)
-                            {
-                                chunk.Append(ch);
-                            }
-                            else
-                            {
-                                if (chunk.Length > 0)
-                                {
-                                    lines.Add(chunk.ToString());
-                                    chunk.Clear();
-                                }
-                                chunk.Append(ch);
-                            }
-                        }
-                        
-                        if (chunk.Length > 0)
-                        {
-                            currentLine.Append(chunk.ToString());
-                        }
-                    }
-                    else
-                    {
-                        currentLine.Append(word);
-                    }
-                }
-            }
-            
-            if (currentLine.Length > 0)
-            {
-                lines.Add(currentLine.ToString());
-            }
-            
-            return lines.Count > 0 ? lines : new List<string> { "" };
-        }
-        
         private void HandleScrolling(KeyboardState keyboardState, MouseState mouseState)
         {
-            var scrollSpeed = 3f;
             var viewport = _graphicsDevice.Viewport;
             var lineHeight = _font.LineSpacing;
             var visibleLineCount = (int)((viewport.Height - 60) / lineHeight);
-            var maxScroll = Math.Max(0, _wrappedLines.Count - visibleLineCount);
             
-            bool scrolled = false;
+            var scrollResult = _textUtils.HandleScrolling(
+                keyboardState, 
+                _previousKeyboardState,
+                mouseState, 
+                _previousMouseState,
+                _scrollOffset,
+                _wrappedLines.Count,
+                visibleLineCount
+            );
             
-            // Keyboard scrolling
-            if (keyboardState.IsKeyDown(Keys.PageUp) && !_previousKeyboardState.IsKeyDown(Keys.PageUp))
-            {
-                _scrollOffset = Math.Max(0, _scrollOffset - scrollSpeed);
-                scrolled = true;
-            }
-            else if (keyboardState.IsKeyDown(Keys.PageDown) && !_previousKeyboardState.IsKeyDown(Keys.PageDown))
-            {
-                _scrollOffset = Math.Min(maxScroll, _scrollOffset + scrollSpeed);
-                scrolled = true;
-            }
-            else if (keyboardState.IsKeyDown(Keys.Home) && !_previousKeyboardState.IsKeyDown(Keys.Home))
-            {
-                _scrollOffset = 0;
-                scrolled = true;
-            }
-            else if (keyboardState.IsKeyDown(Keys.End) && !_previousKeyboardState.IsKeyDown(Keys.End))
-            {
-                _scrollOffset = Math.Max(0, _wrappedLines.Count - visibleLineCount);
-                scrolled = true;
-            }
-            
-            // Mouse wheel scrolling
-            var scrollWheelDelta = mouseState.ScrollWheelValue - _previousMouseState.ScrollWheelValue;
-            if (scrollWheelDelta != 0)
-            {
-                var mouseScrollSpeed = 2f;
-                if (scrollWheelDelta > 0) // Scroll up
-                {
-                    _scrollOffset = Math.Max(0, _scrollOffset - mouseScrollSpeed);
-                }
-                else // Scroll down
-                {
-                    _scrollOffset = Math.Min(maxScroll, _scrollOffset + mouseScrollSpeed);
-                }
-                scrolled = true;
-            }
-            
-            if (scrolled)
+            _scrollOffset = scrollResult.NewScrollOffset;
+            if (scrollResult.UserScrolled)
             {
                 _userHasScrolled = true;
             }
@@ -505,446 +403,13 @@ namespace WonderGame.Screens
             _previousKeyboardState = keyboardState;
         }
 
-        private void CheckInteractionUnlock()
-        {
-            if (_hasSeenPostItNote)
-            {
-                _lookHarderUnlocked = true;
-            }
-        }
 
-        private void ProcessCommand(string input)
-        {
-            var trimmedInput = input.Trim();
-            if (string.IsNullOrWhiteSpace(trimmedInput)) return;
 
-            var parts = trimmedInput.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var verb = NormalizeCommand(parts[0]);
-            var args = FilterCommonWords(parts.Skip(1).ToArray());
 
-            switch (verb)
-            {
-                case "help":
-                    HandleHelp();
-                    break;
-                    
-                case "look":
-                    HandleLook(args);
-                    break;
-                    
-                case "examine":
-                    HandleExamine(args);
-                    break;
-                    
-                case "touch":
-                    HandleTouch(args);
-                    break;
 
-                case "inventory":
-                    HandleInventory();
-                    break;
-                    
-                case "exit":
-                case "quit":
-                    HandleExit();
-                    break;
-                    
-                case "clear":
-                    HandleClear();
-                    break;
-                    
-                case "say":
-                    HandleSay(args);
-                    break;
-                    
-                default:
-                    QueueOutput($"> Unknown command: '{parts[0]}'{(args.Length > 0 ? $" {string.Join(" ", args)}" : "")}");
-                    break;
-            }
-        }
 
-        // Normalize command synonyms to canonical commands
-        private string NormalizeCommand(string command)
-        {
-            var commandSynonyms = new Dictionary<string, string>
-            {
-                // Look synonyms
-                ["observe"] = "look",
-                ["see"] = "look",
-                ["view"] = "look",
-                ["watch"] = "look",
-                ["peek"] = "look",
-                ["glance"] = "look",
-                
-                // Examine synonyms
-                ["inspect"] = "examine",
-                ["check"] = "examine",
-                ["study"] = "examine",
-                ["investigate"] = "examine",
-                ["analyze"] = "examine",
-                ["read"] = "examine",
-                
-                // Touch synonyms
-                ["feel"] = "touch",
-                ["grab"] = "touch",
-                ["hold"] = "touch",
-                ["handle"] = "touch",
-                ["press"] = "touch",
-                
-                // Exit synonyms
-                ["leave"] = "exit",
-                ["escape"] = "exit",
-                ["q"] = "quit",
-                
-                // Clear synonyms
-                ["cls"] = "clear",
-                ["clr"] = "clear",
-                
-                // Help synonyms
-                ["?"] = "help",
-                ["commands"] = "help",
-                
-                // Say synonyms
-                ["speak"] = "say",
-                ["talk"] = "say",
-                ["tell"] = "say",
-                ["shout"] = "say",
-                ["whisper"] = "say"
-            };
 
-            return commandSynonyms.TryGetValue(command, out var canonical) ? canonical : command;
-        }
 
-        // Filter out common prepositions, articles, and filler words that don't affect meaning
-        private string[] FilterCommonWords(string[] words)
-        {
-            var fillerWords = new HashSet<string> 
-            { 
-                "at", "the", "a", "an", "on", "in", "with", "to", "into", "onto", "upon", "from", "of", "over", "under", "around"
-            };
-            
-            return words.Where(word => !fillerWords.Contains(word)).ToArray();
-        }
 
-        // Find recognized objects in the command, regardless of position
-        private string FindRecognizedObject(string[] words)
-        {
-            // Define all known objects and their synonyms
-            var knownObjects = new Dictionary<string, List<string>>
-            {
-                ["sign"] = new() { "sign", "poster", "plaque" },
-                ["terminal"] = new() { "terminal", "computer", "screen", "monitor", "console" },
-                ["bunk"] = new() { "bunk", "bed", "cot" },
-                ["walls"] = new() { "wall", "walls" },
-                ["post-it"] = new() { "post-it", "postit", "note", "post-it note", "postit note", "sticky note", "yellow note" },
-                ["room"] = new() { "room", "area", "chamber", "space" }
-            };
-
-            // Try to find multi-word objects first (like "post-it note")
-            var fullText = string.Join(" ", words);
-            foreach (var kvp in knownObjects)
-            {
-                foreach (var synonym in kvp.Value.OrderByDescending(s => s.Length)) // Check longer phrases first
-                {
-                    if (fullText.Contains(synonym))
-                    {
-                        return kvp.Key; // Return the canonical name
-                    }
-                }
-            }
-
-            // If no multi-word match, try individual words
-            foreach (var word in words)
-            {
-                foreach (var kvp in knownObjects)
-                {
-                    if (kvp.Value.Contains(word))
-                    {
-                        return kvp.Key;
-                    }
-                }
-            }
-
-            // If nothing found, return the filtered args as before
-            return words.Length > 0 ? string.Join(" ", words) : "";
-        }
-
-        private void HandleHelp()
-        {
-            QueueOutput("> Available commands:");
-            QueueOutput(">   help  - Shows this help message.");
-            QueueOutput(">   clear - Clears the screen.");
-            QueueOutput(">   exit  - Exits the game.");
-            QueueOutput(">   look  - Examines your surroundings.");
-            QueueOutput(">   examine [object] - Examines a specific object.");
-            QueueOutput(">   touch [object] - Touches a specific object.");
-            QueueOutput(">   say [phrase] - Speak aloud.");
-            QueueOutput(">   inventory - Shows your inventory.");
-        }
-
-        private void HandleLook(string[] args)
-        {
-            if (args.Length == 0)
-            {
-                // Look around the room
-                QueueOutput("> You are in a small square room. The walls are featureless metal, tinted green by");
-                QueueOutput("> flickering fluorescent strips above. There is a terminal in front of you, a bunk");
-                QueueOutput("> bolted to the wall, and an old sign, partially scratched off.");
-            }
-            else if (args.Length == 1 && args[0] == "harder")
-            {
-                // "look harder" command
-                if (!_lookHarderUnlocked)
-                {
-                    QueueOutput("> You try to focus, but the command feels unfamiliar. Maybe you need more context first?");
-                }
-                else
-                {
-                    QueueOutput("> You focus harder. The humming intensifies. The walls begin to shimmer...");
-                    QueueOutput("> [TRANSITION TO DEEP SYSTEM MODE INITIATED]");
-                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState, this);
-                }
-            }
-            else
-            {
-                // Look at specific object - use smart object recognition
-                var target = FindRecognizedObject(args);
-                ExamineObject(target);
-            }
-        }
-
-        private void HandleExamine(string[] args)
-        {
-            if (args.Length == 0)
-            {
-                QueueOutput("> What would you like to examine?");
-                return;
-            }
-
-            var target = FindRecognizedObject(args);
-            ExamineObject(target);
-        }
-
-        private void HandleTouch(string[] args)
-        {
-            if (args.Length == 0)
-            {
-                QueueOutput("> What would you like to touch?");
-                return;
-            }
-
-            var target = FindRecognizedObject(args);
-            TouchObject(target);
-        }
-
-        private void ExamineObject(string target)
-        {
-            switch (target)
-            {
-                case "sign":
-                    _interactedObjects.Add("sign");
-                    CheckInteractionUnlock();
-                    QueueOutput("> The sign reads: \"____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.\"");
-                    break;
-                    
-                case "terminal":
-                    _interactedObjects.Add("terminal");
-                    QueueOutput("> It displays a looping warning:");
-                    QueueOutput("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
-                    QueueOutput("> There's a small yellow post-it note stuck to the bottom corner of the screen.");
-                    break;
-                    
-                case "bunk":
-                    _interactedObjects.Add("bunk");
-                    CheckInteractionUnlock();
-                    QueueOutput("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
-                    QueueOutput("> the last. Tell the Dragon it smells.\"");
-                    break;
-                    
-                case "walls":
-                    _interactedObjects.Add("walls");
-                    CheckInteractionUnlock();
-                    QueueOutput("> Tiny scratches criss-cross the metal. Messages carved into it:");
-                    QueueOutput("> - \"i told him he looked like a crouton. he ran.\"");
-                    QueueOutput("> - \"insults = escape?\"");
-                    break;
-
-                case "post-it":
-                case "postit":
-                case "postit note":
-                case "note":
-                case "post-it note":
-                    if (_interactedObjects.Contains("terminal"))
-                    {
-                        _hasSeenPostItNote = true;
-                        CheckInteractionUnlock();
-                        QueueOutput("> The post-it note reads in hasty handwriting:");
-                        QueueOutput("> \"When the warnings get too much, try to 'look harder' at reality.\"");
-                        QueueOutput("> \"Trust me, there's more than meets the eye. -J\"");
-                    }
-                    else
-                    {
-                        QueueOutput("> You don't see any post-it note here.");
-                    }
-                    break;
-
-                default:
-                    QueueOutput($"> You don't see any '{target}' here.");
-                    break;
-            }
-        }
-
-        private void TouchObject(string target)
-        {
-            switch (target)
-            {
-                case "bunk":
-                    _interactedObjects.Add("bunk");
-                    CheckInteractionUnlock();
-                    QueueOutput("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
-                    QueueOutput("> the last. Tell the Dragon it smells.\"");
-                    break;
-                    
-                case "walls":
-                    _interactedObjects.Add("walls");
-                    CheckInteractionUnlock();
-                    QueueOutput("> Tiny scratches criss-cross the metal. Messages carved into it:");
-                    QueueOutput("> - \"i told him he looked like a crouton. he ran.\"");
-                    QueueOutput("> - \"insults = escape?\"");
-                    break;
-
-                case "sign":
-                    QueueOutput("> The sign feels cold and metallic to the touch.");
-                    break;
-
-                case "terminal":
-                    QueueOutput("> The terminal screen is slightly warm from the display.");
-                    break;
-
-                default:
-                    QueueOutput($"> You can't touch the '{target}'.");
-                    break;
-            }
-        }
-
-        private void HandleInventory()
-        {
-            QueueOutput("> [EMPTY]");
-        }
-
-        private void HandleExit()
-        {
-            _currentState = ScreenState.ConfirmingQuit;
-            _selectedQuitOption = 0; // Default to Confirm
-        }
-
-        private void HandleClear()
-        {
-            _history.Clear();
-            // Re-add the SIMSYS boot lines and intro text after clearing - but queue them for typewriter effect
-            QueueOutput("BOOTING SIMSYS v1.7.44b");
-            QueueOutput("Initialising subroutine: CORE MODULES... [OK]");
-            QueueOutput("Engaging neural shell... [OK]");
-            QueueOutput("Welcome, Operator.");
-            QueueOutput("");
-            QueueOutput("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
-            QueueOutput("> A terminal cursor blinks expectantly.");
-            QueueOutput("> Perhaps you should 'look' around to get your bearings.");
-            QueueOutput("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
-        }
-
-        private void HandleSay(string[] args)
-        {
-            if (args.Length == 0)
-            {
-                QueueOutput("> Say what?");
-            }
-            else
-            {
-                var phrase = string.Join(" ", args);
-                QueueOutput($"> You say: \"{phrase}\"");
-                QueueOutput("> Your words echo in the empty chamber.");
-            }
-        }
-        
-        private void QueueOutput(string text)
-        {
-            _pendingLines.Enqueue(text);
-        }
-        
-        private void UpdateTypewriter(GameTime gameTime)
-        {
-            if (string.IsNullOrEmpty(_currentTypingLine) && _pendingLines.Count > 0)
-            {
-                // Start typing the next line
-                _currentTypingLine = _pendingLines.Dequeue();
-                _currentCharIndex = 0;
-                _typewriterTimer = 0;
-            }
-            
-            if (!string.IsNullOrEmpty(_currentTypingLine))
-            {
-                _typewriterTimer += gameTime.ElapsedGameTime.TotalSeconds;
-                
-                // Process multiple characters per frame to overcome frame rate limitations
-                while (_typewriterTimer > 0 && _currentCharIndex < _currentTypingLine.Length)
-                {
-                    var currentChar = _currentTypingLine[_currentCharIndex];
-                    var charSpeed = GetCharacterSpeed(currentChar);
-                    
-                    if (_typewriterTimer >= charSpeed)
-                    {
-                        _typewriterTimer -= charSpeed; // Subtract the time used for this character
-                        _currentCharIndex++;
-                        
-                        if (_currentCharIndex >= _currentTypingLine.Length)
-                        {
-                            // Finished typing this line
-                            _history.Add(_currentTypingLine);
-                            _currentTypingLine = "";
-                            _currentCharIndex = 0;
-                            _typewriterTimer = 0; // Reset timer for next line
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        // Not enough time accumulated for next character
-                        break;
-                    }
-                }
-            }
-        }
-        
-        private double GetCharacterSpeed(char character)
-        {
-            // Base speed with some random variation (±50%)
-            var speed = _baseTypewriterSpeed * (0.5 + _typewriterRandom.NextDouble());
-            
-            // Adjust speed based on character type for more natural feel
-            switch (character)
-            {
-                case ' ':
-                    // Spaces are slightly faster (like AI processing words in chunks)
-                    return speed * 0.3;
-                case '.':
-                case '!':
-                case '?':
-                    // Punctuation gets a tiny pause (like AI considering sentence structure)
-                    return speed * 2.0;
-                case ',':
-                case ';':
-                case ':':
-                    // Minor punctuation gets small pause
-                    return speed * 1.5;
-                case '\n':
-                case '\r':
-                    // Line breaks are instant
-                    return 0.001;
-                default:
-                    // Regular characters with variation
-                    return speed;
-            }
-        }
     }
 } 
