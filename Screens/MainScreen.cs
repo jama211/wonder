@@ -596,7 +596,7 @@ namespace WonderGame.Screens
                 {
                     QueueOutput("> You focus harder. The humming intensifies. The walls begin to shimmer...");
                     QueueOutput("> [TRANSITION TO DEEP SYSTEM MODE INITIATED]");
-                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState);
+                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState, this);
                 }
             }
             else

@@ -96,14 +96,16 @@ namespace WonderGame.Screens
         private bool _isAwaitingSayInput = false;
         private readonly StringBuilder _sayInput = new();
         private bool _showingSayPrompt = false;
+        private readonly MainScreen? _originalMainScreen;
 
-        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null)
+        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null, MainScreen? originalMainScreen = null)
         {
             _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
             _previousKeyboardState = previousKeyboardState ?? Keyboard.GetState();
+            _originalMainScreen = originalMainScreen;
             
             LoadRoom(startingRoomName, null);
         }
@@ -197,7 +199,7 @@ namespace WonderGame.Screens
                 }
                 else
                 {
-                    _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                    _nextScreen = _originalMainScreen ?? new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
                 }
                 return;
             }
@@ -296,12 +298,12 @@ namespace WonderGame.Screens
                         {
                             if (_dragonDefeated)
                             {
-                                // Endgame sequence
-                                var tempMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
-                                tempMainScreen.AddLogEntry("CONNECTION LOST.");
-                                tempMainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
-                                tempMainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
-                                _nextScreen = tempMainScreen;
+                                // Endgame sequence - return to original terminal with new messages
+                                var mainScreen = _originalMainScreen ?? new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                                mainScreen.AddLogEntry("CONNECTION LOST.");
+                                mainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
+                                mainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
+                                _nextScreen = mainScreen;
                                 return;
                             }
                             else
