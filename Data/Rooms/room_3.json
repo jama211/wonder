@@ -4,33 +4,251 @@
       "Name": "D\nO\nO\nR",
       "X": 120,
       "Y": 200,
-      "DoorTo": "room_2"
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": "A metallic door leading back to the previous chamber.",
+      "DoorTo": "room_2",
+      "GroupId": null
     },
     {
-      "Name": "D\nO\nO\nR",
-      "X": 690,
-      "Y": 200,
-      "DoorTo": "room_4"
+      "Name": "~",
+      "X": 250,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
     },
     {
-      "Name": "DOOR",
-      "X": 400,
-      "Y": 120,
-      "DoorTo": "room_5"
+      "Name": "~",
+      "X": 270,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
     },
     {
-      "Name": "S\nO\nF\nA",
-      "X": 300,
-      "Y": 300,
-      "ScaleX": 2.0,
-      "ScaleY": 1.8,
-      "Description": "A plush sofa. The cushions have a permanent indentation."
+      "Name": "~",
+      "X": 290,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
     },
     {
-      "Name": "PAINTING",
+      "Name": "~",
+      "X": 310,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 330,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
       "X": 350,
-      "Y": 120,
-      "Description": "A painting of a serene seascape. It seems oddly out of place here."
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 370,
+      "Y": 180,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 250,
+      "Y": 200,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "D",
+      "X": 280,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "R",
+      "X": 300,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "A",
+      "X": 320,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "G",
+      "X": 340,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "O",
+      "X": 360,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "N",
+      "X": 380,
+      "Y": 200,
+      "ScaleX": 1.5,
+      "ScaleY": 1.5,
+      "Description": "DRAGON",
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 370,
+      "Y": 200,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 250,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 270,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 290,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 310,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 330,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 350,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "~",
+      "X": 370,
+      "Y": 220,
+      "ScaleX": 1.0,
+      "ScaleY": 1.0,
+      "Description": null,
+      "DoorTo": null,
+      "GroupId": "dragon"
+    },
+    {
+      "Name": "T\nE\nR\nM\nI\nN\nA\nL",
+      "X": 180,
+      "Y": 320,
+      "ScaleX": 1.2,
+      "ScaleY": 1.2,
+      "Description": "TERMINAL_ROOM3",
+      "DoorTo": null,
+      "GroupId": null
+    },
+    {
+      "Name": "E\nX\nI\nT",
+      "X": 680,
+      "Y": 200,
+      "ScaleX": 1.2,
+      "ScaleY": 1.2,
+      "Description": "EXIT_DOOR",
+      "DoorTo": null,
+      "GroupId": null
     }
   ]
 } 

@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using WonderGame.Core;
 
@@ -49,6 +51,14 @@ namespace WonderGame.Screens
         // Command history
         private readonly List<string> _commandHistory = new();
         private int _commandHistoryIndex = -1;
+        
+        // Typewriter effect for output
+        private readonly Queue<string> _pendingLines = new();
+        private string _currentTypingLine = "";
+        private int _currentCharIndex = 0;
+        private double _typewriterTimer = 0;
+        private const double _baseTypewriterSpeed = 0.004; // 4ms base speed = 250 chars/sec
+        private readonly Random _typewriterRandom = new();
 
         public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
         {
@@ -57,18 +67,18 @@ namespace WonderGame.Screens
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
 
-            // SIMSYS boot lines displayed after the main boot sequence
-            _history.Add("BOOTING SIMSYS v1.7.44b");
-            _history.Add("Initialising subroutine: CORE MODULES... [OK]");
-            _history.Add("Engaging neural shell... [OK]");
-            _history.Add("Welcome, Operator.");
-            _history.Add("");
+            // SIMSYS boot lines displayed after the main boot sequence - queue for typewriter effect
+            QueueOutput("BOOTING SIMSYS v1.7.44b");
+            QueueOutput("Initialising subroutine: CORE MODULES... [OK]");
+            QueueOutput("Engaging neural shell... [OK]");
+            QueueOutput("Welcome, Operator.");
+            QueueOutput("");
             
             // New intro text after boot sequence
-            _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
-            _history.Add("> A terminal cursor blinks expectantly.");
-            _history.Add("> Perhaps you should 'look' around to get your bearings.");
-            _history.Add("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
+            QueueOutput("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
+            QueueOutput("> A terminal cursor blinks expectantly.");
+            QueueOutput("> Perhaps you should 'look' around to get your bearings.");
+            QueueOutput("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
             
             _previousKeyboardState = Keyboard.GetState();
             _previousMouseState = Mouse.GetState();
@@ -81,7 +91,7 @@ namespace WonderGame.Screens
 
         public void AddLogEntry(string logEntry)
         {
-            _history.Add(logEntry);
+            QueueOutput(logEntry);
         }
 
         public void Update(GameTime gameTime)
@@ -104,6 +114,7 @@ namespace WonderGame.Screens
                 {
                     HandleSpecialKeys();
                     HandleScrolling(keyboardState, mouseState);
+                    UpdateTypewriter(gameTime);
                     _cursorTimer += gameTime.ElapsedGameTime.TotalSeconds;
                     if (_cursorTimer > 0.5)
                     {
@@ -155,9 +166,12 @@ namespace WonderGame.Screens
                 }
                 _commandHistoryIndex = -1; // Reset history navigation
                 
+                // User input should appear immediately (no typewriter effect)
                 _history.Add(""); // Add spacing above the user prompt
                 _history.Add($">> {command}");
                 _history.Add(""); // Add spacing between input and response
+                
+                // System responses use the typewriter effect
                 ProcessCommand(command);
                 _currentInput.Clear();
                 _userHasScrolled = false; // Reset scroll flag so new content auto-scrolls
@@ -237,6 +251,14 @@ namespace WonderGame.Screens
             foreach (var line in _history)
             {
                 var wrappedLines = WrapText(line, availableWidth);
+                _wrappedLines.AddRange(wrappedLines);
+            }
+            
+            // Add the currently typing line if there is one
+            if (!string.IsNullOrEmpty(_currentTypingLine) && _currentCharIndex > 0)
+            {
+                var partialText = _currentTypingLine.Substring(0, _currentCharIndex);
+                var wrappedLines = WrapText(partialText, availableWidth);
                 _wrappedLines.AddRange(wrappedLines);
             }
         }
@@ -493,128 +515,329 @@ namespace WonderGame.Screens
 
         private void ProcessCommand(string input)
         {
-            var command = input.ToLowerInvariant().Trim();
+            var trimmedInput = input.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedInput)) return;
 
-            if (string.IsNullOrWhiteSpace(command)) return;
+            var parts = trimmedInput.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var verb = parts[0];
+            var args = parts.Skip(1).ToArray();
 
-            switch (command)
+            switch (verb)
             {
                 case "help":
-                    _history.Add("> Available commands:");
-                    _history.Add(">   help  - Shows this help message.");
-                    _history.Add(">   clear - Clears the screen.");
-                    _history.Add(">   exit  - Exits the game.");
-                    _history.Add(">   look  - Examines your surroundings.");
-                    _history.Add(">   examine [object] - Examines a specific object.");
-                    _history.Add(">   touch [object] - Touches a specific object.");
-                    _history.Add(">   inventory - Shows your inventory.");
+                    HandleHelp();
                     break;
                     
                 case "look":
-                    _history.Add("> You are in a small square room. The walls are featureless metal, tinted green by");
-                    _history.Add("> flickering fluorescent strips above. There is a terminal in front of you, a bunk");
-                    _history.Add("> bolted to the wall, and an old sign, partially scratched off.");
+                    HandleLook(args);
                     break;
                     
-                case "examine sign":
-                case "look sign":
-                    _interactedObjects.Add("sign");
-                    CheckInteractionUnlock();
-                    _history.Add("> The sign reads: \"____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.\"");
+                case "examine":
+                    HandleExamine(args);
                     break;
                     
-                case "examine terminal":
-                case "look terminal":
-                    _interactedObjects.Add("terminal");
-                    _history.Add("> It displays a looping warning:");
-                    _history.Add("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
-                    _history.Add("> There's a small yellow post-it note stuck to the bottom corner of the screen.");
-                    break;
-                    
-                case "touch bunk":
-                case "examine bunk":
-                case "look bunk":
-                    _interactedObjects.Add("bunk");
-                    CheckInteractionUnlock();
-                    _history.Add("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
-                    _history.Add("> the last. Tell the Dragon it smells.\"");
-                    break;
-                    
-                case "examine walls":
-                case "look walls":
-                case "touch walls":
-                    _interactedObjects.Add("walls");
-                    CheckInteractionUnlock();
-                    _history.Add("> Tiny scratches criss-cross the metal. Messages carved into it:");
-                    _history.Add("> - \"i told him he looked like a crouton. he ran.\"");
-                    _history.Add("> - \"insults = escape?\"");
-                    break;
-
-                case "examine post-it":
-                case "examine postit":
-                case "examine postit note":
-                case "examine note":
-                case "examine post-it note":
-                case "look post-it":
-                case "look postit":
-                case "look postit note":
-                case "look note":
-                case "look post-it note":
-                    if (_interactedObjects.Contains("terminal"))
-                    {
-                        _hasSeenPostItNote = true;
-                        CheckInteractionUnlock();
-                        _history.Add("> The post-it note reads in hasty handwriting:");
-                        _history.Add("> \"When the warnings get too much, try to 'look harder' at reality.\"");
-                        _history.Add("> \"Trust me, there's more than meets the eye. -J\"");
-                    }
-                    else
-                    {
-                        _history.Add("> You don't see any post-it note here.");
-                    }
+                case "touch":
+                    HandleTouch(args);
                     break;
 
                 case "inventory":
-                    _history.Add("> [EMPTY]");
-                    break;
-                    
-                case "look harder":
-                    if (!_lookHarderUnlocked)
-                    {
-                        _history.Add("> You try to focus, but the command feels unfamiliar. Maybe you need more context first?");
-                    }
-                    else
-                    {
-                        _history.Add("> You focus harder. The humming intensifies. The walls begin to shimmer...");
-                        _history.Add("> [TRANSITION TO DEEP SYSTEM MODE INITIATED]");
-                        _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState);
-                    }
+                    HandleInventory();
                     break;
                     
                 case "exit":
                 case "quit":
-                    // Instead of exiting directly, open the confirmation dialog.
-                    _currentState = ScreenState.ConfirmingQuit;
-                    _selectedQuitOption = 0; // Default to Confirm
+                    HandleExit();
                     break;
                     
                 case "clear":
-                    _history.Clear();
-                    // Re-add the SIMSYS boot lines and intro text after clearing
-                    _history.Add("BOOTING SIMSYS v1.7.44b");
-                    _history.Add("Initialising subroutine: CORE MODULES... [OK]");
-                    _history.Add("Engaging neural shell... [OK]");
-                    _history.Add("Welcome, Operator.");
-                    _history.Add("");
-                    _history.Add("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
-                    _history.Add("> A terminal cursor blinks expectantly.");
-                    _history.Add("> Perhaps you should 'look' around to get your bearings.");
-                    _history.Add("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
+                    HandleClear();
+                    break;
+                    
+                case "say":
+                    HandleSay(args);
                     break;
                     
                 default:
-                    _history.Add($"> Unknown command: '{command}'");
+                    QueueOutput($"> Unknown command: '{verb}'{(args.Length > 0 ? $" {string.Join(" ", args)}" : "")}");
                     break;
+            }
+        }
+
+        private void HandleHelp()
+        {
+            QueueOutput("> Available commands:");
+            QueueOutput(">   help  - Shows this help message.");
+            QueueOutput(">   clear - Clears the screen.");
+            QueueOutput(">   exit  - Exits the game.");
+            QueueOutput(">   look  - Examines your surroundings.");
+            QueueOutput(">   examine [object] - Examines a specific object.");
+            QueueOutput(">   touch [object] - Touches a specific object.");
+            QueueOutput(">   say [phrase] - Speak aloud.");
+            QueueOutput(">   inventory - Shows your inventory.");
+        }
+
+        private void HandleLook(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                // Look around the room
+                QueueOutput("> You are in a small square room. The walls are featureless metal, tinted green by");
+                QueueOutput("> flickering fluorescent strips above. There is a terminal in front of you, a bunk");
+                QueueOutput("> bolted to the wall, and an old sign, partially scratched off.");
+            }
+            else if (args.Length == 1 && args[0] == "harder")
+            {
+                // "look harder" command
+                if (!_lookHarderUnlocked)
+                {
+                    QueueOutput("> You try to focus, but the command feels unfamiliar. Maybe you need more context first?");
+                }
+                else
+                {
+                    QueueOutput("> You focus harder. The humming intensifies. The walls begin to shimmer...");
+                    QueueOutput("> [TRANSITION TO DEEP SYSTEM MODE INITIATED]");
+                    _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState);
+                }
+            }
+            else
+            {
+                // Look at specific object - treat same as examine
+                var target = string.Join(" ", args);
+                ExamineObject(target);
+            }
+        }
+
+        private void HandleExamine(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                QueueOutput("> What would you like to examine?");
+                return;
+            }
+
+            var target = string.Join(" ", args);
+            ExamineObject(target);
+        }
+
+        private void HandleTouch(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                QueueOutput("> What would you like to touch?");
+                return;
+            }
+
+            var target = string.Join(" ", args);
+            TouchObject(target);
+        }
+
+        private void ExamineObject(string target)
+        {
+            switch (target)
+            {
+                case "sign":
+                    _interactedObjects.Add("sign");
+                    CheckInteractionUnlock();
+                    QueueOutput("> The sign reads: \"____ YOUR POSTS. THE DRAGON IS ALWAYS LISTENING.\"");
+                    break;
+                    
+                case "terminal":
+                    _interactedObjects.Add("terminal");
+                    QueueOutput("> It displays a looping warning:");
+                    QueueOutput("> \"EMOTIONAL SUPPRESSION FIELD ACTIVE. HOSTILE ENTITY DETECTED IN SECTOR C.\"");
+                    QueueOutput("> There's a small yellow post-it note stuck to the bottom corner of the screen.");
+                    break;
+                    
+                case "bunk":
+                    _interactedObjects.Add("bunk");
+                    CheckInteractionUnlock();
+                    QueueOutput("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
+                    QueueOutput("> the last. Tell the Dragon it smells.\"");
+                    break;
+                    
+                case "walls":
+                    _interactedObjects.Add("walls");
+                    CheckInteractionUnlock();
+                    QueueOutput("> Tiny scratches criss-cross the metal. Messages carved into it:");
+                    QueueOutput("> - \"i told him he looked like a crouton. he ran.\"");
+                    QueueOutput("> - \"insults = escape?\"");
+                    break;
+
+                case "post-it":
+                case "postit":
+                case "postit note":
+                case "note":
+                case "post-it note":
+                    if (_interactedObjects.Contains("terminal"))
+                    {
+                        _hasSeenPostItNote = true;
+                        CheckInteractionUnlock();
+                        QueueOutput("> The post-it note reads in hasty handwriting:");
+                        QueueOutput("> \"When the warnings get too much, try to 'look harder' at reality.\"");
+                        QueueOutput("> \"Trust me, there's more than meets the eye. -J\"");
+                    }
+                    else
+                    {
+                        QueueOutput("> You don't see any post-it note here.");
+                    }
+                    break;
+
+                default:
+                    QueueOutput($"> You don't see any '{target}' here.");
+                    break;
+            }
+        }
+
+        private void TouchObject(string target)
+        {
+            switch (target)
+            {
+                case "bunk":
+                    _interactedObjects.Add("bunk");
+                    CheckInteractionUnlock();
+                    QueueOutput("> Cold. Uninviting. There's a sticker on the underside: \"You are not the first, nor");
+                    QueueOutput("> the last. Tell the Dragon it smells.\"");
+                    break;
+                    
+                case "walls":
+                    _interactedObjects.Add("walls");
+                    CheckInteractionUnlock();
+                    QueueOutput("> Tiny scratches criss-cross the metal. Messages carved into it:");
+                    QueueOutput("> - \"i told him he looked like a crouton. he ran.\"");
+                    QueueOutput("> - \"insults = escape?\"");
+                    break;
+
+                case "sign":
+                    QueueOutput("> The sign feels cold and metallic to the touch.");
+                    break;
+
+                case "terminal":
+                    QueueOutput("> The terminal screen is slightly warm from the display.");
+                    break;
+
+                default:
+                    QueueOutput($"> You can't touch the '{target}'.");
+                    break;
+            }
+        }
+
+        private void HandleInventory()
+        {
+            QueueOutput("> [EMPTY]");
+        }
+
+        private void HandleExit()
+        {
+            _currentState = ScreenState.ConfirmingQuit;
+            _selectedQuitOption = 0; // Default to Confirm
+        }
+
+        private void HandleClear()
+        {
+            _history.Clear();
+            // Re-add the SIMSYS boot lines and intro text after clearing - but queue them for typewriter effect
+            QueueOutput("BOOTING SIMSYS v1.7.44b");
+            QueueOutput("Initialising subroutine: CORE MODULES... [OK]");
+            QueueOutput("Engaging neural shell... [OK]");
+            QueueOutput("Welcome, Operator.");
+            QueueOutput("");
+            QueueOutput("> You awaken to the sterile hum of machinery. There's a slight pressure behind your eyes, like a memory you can't quite access.");
+            QueueOutput("> A terminal cursor blinks expectantly.");
+            QueueOutput("> Perhaps you should 'look' around to get your bearings.");
+            QueueOutput("> (The neural interface helpfully suggests that 'help' might reveal additional operator commands.)");
+        }
+
+        private void HandleSay(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                QueueOutput("> Say what?");
+            }
+            else
+            {
+                var phrase = string.Join(" ", args);
+                QueueOutput($"> You say: \"{phrase}\"");
+                QueueOutput("> Your words echo in the empty chamber.");
+            }
+        }
+        
+        private void QueueOutput(string text)
+        {
+            _pendingLines.Enqueue(text);
+        }
+        
+        private void UpdateTypewriter(GameTime gameTime)
+        {
+            if (string.IsNullOrEmpty(_currentTypingLine) && _pendingLines.Count > 0)
+            {
+                // Start typing the next line
+                _currentTypingLine = _pendingLines.Dequeue();
+                _currentCharIndex = 0;
+                _typewriterTimer = 0;
+            }
+            
+            if (!string.IsNullOrEmpty(_currentTypingLine))
+            {
+                _typewriterTimer += gameTime.ElapsedGameTime.TotalSeconds;
+                
+                // Process multiple characters per frame to overcome frame rate limitations
+                while (_typewriterTimer > 0 && _currentCharIndex < _currentTypingLine.Length)
+                {
+                    var currentChar = _currentTypingLine[_currentCharIndex];
+                    var charSpeed = GetCharacterSpeed(currentChar);
+                    
+                    if (_typewriterTimer >= charSpeed)
+                    {
+                        _typewriterTimer -= charSpeed; // Subtract the time used for this character
+                        _currentCharIndex++;
+                        
+                        if (_currentCharIndex >= _currentTypingLine.Length)
+                        {
+                            // Finished typing this line
+                            _history.Add(_currentTypingLine);
+                            _currentTypingLine = "";
+                            _currentCharIndex = 0;
+                            _typewriterTimer = 0; // Reset timer for next line
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // Not enough time accumulated for next character
+                        break;
+                    }
+                }
+            }
+        }
+        
+        private double GetCharacterSpeed(char character)
+        {
+            // Base speed with some random variation (±50%)
+            var speed = _baseTypewriterSpeed * (0.5 + _typewriterRandom.NextDouble());
+            
+            // Adjust speed based on character type for more natural feel
+            switch (character)
+            {
+                case ' ':
+                    // Spaces are slightly faster (like AI processing words in chunks)
+                    return speed * 0.3;
+                case '.':
+                case '!':
+                case '?':
+                    // Punctuation gets a tiny pause (like AI considering sentence structure)
+                    return speed * 2.0;
+                case ',':
+                case ';':
+                case ':':
+                    // Minor punctuation gets small pause
+                    return speed * 1.5;
+                case '\n':
+                case '\r':
+                    // Line breaks are instant
+                    return 0.001;
+                default:
+                    // Regular characters with variation
+                    return speed;
             }
         }
     }

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using WonderGame.Core;
 using WonderGame.Data;
@@ -58,7 +59,7 @@ namespace WonderGame.Screens
         }
     }
 
-    public class IsometricScreen : IScreen
+    public class IsometricScreen : IScreen, ITextInputReceiver
     {
         private readonly SpriteFont _font;
         private readonly Color _themeForeground;
@@ -89,6 +90,12 @@ namespace WonderGame.Screens
             "You smell like burnt RAM.",
             "poo poo bum head"
         };
+
+        // Dragon state for Room 3
+        private bool _dragonDefeated = false;
+        private bool _isAwaitingSayInput = false;
+        private readonly StringBuilder _sayInput = new();
+        private bool _showingSayPrompt = false;
 
         public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null)
         {
@@ -178,20 +185,52 @@ namespace WonderGame.Screens
         {
             var keyboardState = Keyboard.GetState();
 
+            // Handle ESC - works even during say input to cancel it
             if (keyboardState.IsKeyDown(Keys.Escape) && _previousKeyboardState.IsKeyUp(Keys.Escape))
             {
-                _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                if (_isAwaitingSayInput)
+                {
+                    // Cancel say input
+                    _isAwaitingSayInput = false;
+                    _showingSayPrompt = false;
+                    _sayInput.Clear();
+                }
+                else
+                {
+                    _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                }
                 return;
             }
 
-            if (keyboardState.IsKeyDown(Keys.P) && _previousKeyboardState.IsKeyUp(Keys.P))
+            // Disable all other keyboard shortcuts during say input
+            if (!_isAwaitingSayInput)
             {
-                _nextScreen = new RoomEditorScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, _currentRoomName, keyboardState);
-                return;
-            }
+                if (keyboardState.IsKeyDown(Keys.P) && _previousKeyboardState.IsKeyUp(Keys.P))
+                {
+                    _nextScreen = new RoomEditorScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, _currentRoomName, keyboardState);
+                    return;
+                }
 
-            HandlePlayerMovement(gameTime, keyboardState);
-            HandleInteraction(keyboardState);
+                // Handle 'S' key for say command (only in Room 3 near the dragon)
+                if (keyboardState.IsKeyDown(Keys.S) && _previousKeyboardState.IsKeyUp(Keys.S) && _currentRoomName == "room_3")
+                {
+                    var playerBounds = new Rectangle((int)_playerPosition.X, (int)_playerPosition.Y, (int)_font.MeasureString("@").X, (int)_font.MeasureString("@").Y);
+                    playerBounds.Inflate(30, 30); // Slightly larger radius for say command
+                    
+                    var dragonNearby = _worldObjects.Any(obj => obj.Data.Description == "DRAGON" && obj.BoundingBox.Intersects(playerBounds));
+                    
+                    if (dragonNearby && !_dragonDefeated)
+                    {
+                        _isAwaitingSayInput = true;
+                        _showingSayPrompt = true;
+                        _sayInput.Clear();
+                        return;
+                    }
+                }
+
+                HandlePlayerMovement(gameTime, keyboardState);
+                HandleInteraction(keyboardState);
+            }
             
             if (_interactionMessage != null)
             {
@@ -233,6 +272,44 @@ namespace WonderGame.Screens
                             tempMainScreen.AddLogEntry("> Subject 442A attempted use of 'smelly pants' insult. Insufficient offense. Subject devoured.");
                             _nextScreen = tempMainScreen;
                             return;
+                        }
+                        
+                        if (obj.Data.Description == "TERMINAL_ROOM3")
+                        {
+                            // Room 3 terminal shows hint message in RPG mode
+                            _interactionMessage = "SYSTEM MEMO 7-B: Only the emotionally devastating may pass. Level 3 clearance: 'poo poo bum head' confirmed effective.";
+                            _messageTimer = 0;
+                            return;
+                        }
+                        
+                        if (obj.Data.Description == "DRAGON")
+                        {
+                            if (!_dragonDefeated)
+                            {
+                                _interactionMessage = "WHO DARES APPROACH ME WITH UNSINGED DIALOGUE? Type 'S' to say something!";
+                                _messageTimer = 0;
+                                return;
+                            }
+                        }
+                        
+                        if (obj.Data.Description == "EXIT_DOOR")
+                        {
+                            if (_dragonDefeated)
+                            {
+                                // Endgame sequence
+                                var tempMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                                tempMainScreen.AddLogEntry("CONNECTION LOST.");
+                                tempMainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
+                                tempMainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
+                                _nextScreen = tempMainScreen;
+                                return;
+                            }
+                            else
+                            {
+                                _interactionMessage = "The dragon blocks your path to the exit.";
+                                _messageTimer = 0;
+                                return;
+                            }
                         }
 
                         // Handle door interactions
@@ -287,12 +364,93 @@ namespace WonderGame.Screens
             }
         }
 
+        // ITextInputReceiver implementation for 'say' command in room 3
+        public void OnTextInput(char character)
+        {
+            if (_isAwaitingSayInput && (char.IsLetterOrDigit(character) || char.IsWhiteSpace(character) || char.IsPunctuation(character)))
+            {
+                _sayInput.Append(character);
+            }
+        }
+
+        public void OnBackspace()
+        {
+            if (_isAwaitingSayInput && _sayInput.Length > 0)
+            {
+                _sayInput.Length--;
+            }
+        }
+
+        public void OnEnter()
+        {
+            if (_isAwaitingSayInput)
+            {
+                var phrase = _sayInput.ToString().Trim().ToLowerInvariant();
+                _sayInput.Clear();
+                _isAwaitingSayInput = false;
+                _showingSayPrompt = false;
+                
+                ProcessSayCommand(phrase);
+            }
+        }
+
+        private void ProcessSayCommand(string phrase)
+        {
+            if (_currentRoomName == "room_3" && !_dragonDefeated)
+            {
+                // Check if player said the magic phrase to the dragon
+                if (phrase == "poo poo bum head")
+                {
+                    // Dragon defeated!
+                    _dragonDefeated = true;
+                    _interactionMessage = "The dragon gasps. \"HOW DARE YOU!\" The word DRAGON crumbles into dust.";
+                    _messageTimer = 0;
+                    
+                    // Remove all dragon parts from the world
+                    _worldObjects.RemoveAll(obj => obj.Data.GroupId == "dragon");
+                    
+                    // Rebuild collision rects without dragon parts
+                    _collisionRects.Clear();
+                    var wallTop = new Rectangle(110, 110, 600, 10);
+                    var wallBottom = new Rectangle(110, 420, 600, 10);
+                    var wallLeft = new Rectangle(110, 110, 10, 320);
+                    var wallRight = new Rectangle(700, 110, 10, 320);
+                    _collisionRects.AddRange(new[] { wallTop, wallBottom, wallLeft, wallRight });
+                    _collisionRects.AddRange(_worldObjects.Select(o => o.BoundingBox));
+                }
+                else
+                {
+                    // Dragon mocks the player
+                    _interactionMessage = "The dragon scoffs. \"Is that the best you've got?\"";
+                    _messageTimer = 0;
+                }
+            }
+            else
+            {
+                // Normal say response
+                _interactionMessage = $"You say: \"{phrase}\"";
+                _messageTimer = 0;
+            }
+        }
+
         public void Draw(GameTime gameTime)
         {
             var spriteBatch = Core.Global.SpriteBatch;
             if (spriteBatch == null) return;
             
-            string instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact | P: Edit Room";
+            string instructions;
+            if (_isAwaitingSayInput)
+            {
+                instructions = "Type your message | Enter: Send | ESC: Cancel";
+            }
+            else if (_currentRoomName == "room_3" && !_dragonDefeated)
+            {
+                instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact | S: Say (near dragon) | P: Edit Room";
+            }
+            else
+            {
+                instructions = "WASD/Arrows: Move | ESC: Return to prompt | E: Interact | P: Edit Room";
+            }
             spriteBatch.DrawString(_font, instructions, new Vector2(20, 20), Color.Gray);
 
             // Draw current room name
@@ -324,6 +482,19 @@ namespace WonderGame.Screens
                 var messageSize = _font.MeasureString(_interactionMessage);
                 var messagePos = new Vector2((_graphicsDevice.Viewport.Width - messageSize.X) / 2, _graphicsDevice.Viewport.Height - 50);
                 spriteBatch.DrawString(_font, _interactionMessage, messagePos, Color.White);
+            }
+            
+            // Draw say input prompt if active
+            if (_showingSayPrompt)
+            {
+                var promptText = $"Say: {_sayInput} _";
+                var promptSize = _font.MeasureString(promptText);
+                var promptPos = new Vector2((_graphicsDevice.Viewport.Width - promptSize.X) / 2, _graphicsDevice.Viewport.Height - 100);
+                
+                // Draw background box for prompt
+                var promptRect = new Rectangle((int)promptPos.X - 10, (int)promptPos.Y - 5, (int)promptSize.X + 20, (int)promptSize.Y + 10);
+                spriteBatch.Draw(spriteBatch.GraphicsDevice.GetWhitePixel(), promptRect, Color.Black);
+                spriteBatch.DrawString(_font, promptText, promptPos, Color.Yellow);
             }
         }
     }
