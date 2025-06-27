@@ -96,16 +96,17 @@ namespace WonderGame.Screens
         private bool _isAwaitingSayInput = false;
         private readonly StringBuilder _sayInput = new();
         private bool _showingSayPrompt = false;
-        private readonly MainScreen? _originalMainScreen;
+        // Keep a reference to the original MainScreen to preserve its state
+        private readonly MainScreen _originalMainScreen;
 
-        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, KeyboardState? previousKeyboardState = null, MainScreen? originalMainScreen = null)
+        public IsometricScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, string startingRoomName, MainScreen originalMainScreen, KeyboardState? previousKeyboardState = null)
         {
             _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
-            _previousKeyboardState = previousKeyboardState ?? Keyboard.GetState();
             _originalMainScreen = originalMainScreen;
+            _previousKeyboardState = previousKeyboardState ?? Keyboard.GetState();
             
             LoadRoom(startingRoomName, null);
         }
@@ -151,7 +152,9 @@ namespace WonderGame.Screens
             if (!File.Exists(path))
             {
                 Console.WriteLine($"Could not find room file: {path}");
-                _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground); // Go back if room not found
+                // Go back to MainScreen with preserved history if room not found
+                _nextScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, 
+                                           _originalMainScreen.GetHistory(), _originalMainScreen.GetCommandHistory());
                 return;
             }
 
@@ -199,7 +202,11 @@ namespace WonderGame.Screens
                 }
                 else
                 {
-                    _nextScreen = _originalMainScreen ?? new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                    // Create a new MainScreen with preserved history to avoid screen conflicts
+                    var newMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, 
+                                                     _originalMainScreen.GetHistory(), _originalMainScreen.GetCommandHistory(), ignoreFirstEscape: true);
+                    newMainScreen.AddLogEntry("> You return to the terminal interface.");
+                    _nextScreen = newMainScreen;
                 }
                 return;
             }
@@ -268,11 +275,12 @@ namespace WonderGame.Screens
                         
                         if (obj.Data.Description == "TERMINAL_ROOM2")
                         {
-                            // Create a temporary MainScreen with the log entry
-                            var tempMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
-                            tempMainScreen.AddLogEntry("> LOG ENTRY 442A:");
-                            tempMainScreen.AddLogEntry("> Subject 442A attempted use of 'smelly pants' insult. Insufficient offense. Subject devoured.");
-                            _nextScreen = tempMainScreen;
+                            // Create a new MainScreen with preserved history and the log entry
+                            var newMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, 
+                                                             _originalMainScreen.GetHistory(), _originalMainScreen.GetCommandHistory());
+                            newMainScreen.AddLogEntry("> LOG ENTRY 442A:");
+                            newMainScreen.AddLogEntry("> Subject 442A attempted use of 'smelly pants' insult. Insufficient offense. Subject devoured.");
+                            _nextScreen = newMainScreen;
                             return;
                         }
                         
@@ -298,12 +306,13 @@ namespace WonderGame.Screens
                         {
                             if (_dragonDefeated)
                             {
-                                // Endgame sequence - return to original terminal with new messages
-                                var mainScreen = _originalMainScreen ?? new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
-                                mainScreen.AddLogEntry("CONNECTION LOST.");
-                                mainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
-                                mainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
-                                _nextScreen = mainScreen;
+                                // Endgame sequence - create new terminal with preserved history and victory messages
+                                var newMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, 
+                                                                 _originalMainScreen.GetHistory(), _originalMainScreen.GetCommandHistory());
+                                newMainScreen.AddLogEntry("CONNECTION LOST.");
+                                newMainScreen.AddLogEntry("TERMINAL CORRUPTION DETECTED.");
+                                newMainScreen.AddLogEntry("Thank you for participating in System Glitch: Episode 0.");
+                                _nextScreen = newMainScreen;
                                 return;
                             }
                             else

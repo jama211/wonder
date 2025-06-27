@@ -97,7 +97,9 @@ namespace WonderGame.Screens
             if ((keyboardState.IsKeyDown(Keys.Escape) && _previousKeyboardState.IsKeyUp(Keys.Escape)) ||
                 (keyboardState.IsKeyDown(Keys.P) && _previousKeyboardState.IsKeyUp(Keys.P)))
             {
-                _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, _roomName, keyboardState);
+                // Create a temporary MainScreen for the IsometricScreen constructor
+                var tempMainScreen = new MainScreen(_graphicsDevice, _font, _themeBackground, _themeForeground);
+                _nextScreen = new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, _roomName, tempMainScreen, keyboardState);
                 return;
             }
 

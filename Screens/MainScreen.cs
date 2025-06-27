@@ -51,12 +51,16 @@ namespace WonderGame.Screens
         private readonly List<string> _commandHistory = new();
         private int _commandHistoryIndex = -1;
 
-        public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground)
+        // Flag to ignore the first ESC key press (for transitions from other screens)
+        private bool _ignoreNextEscape = false;
+
+        public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, bool ignoreFirstEscape = false)
         {
             _graphicsDevice = graphicsDevice;
             _font = font;
             _themeForeground = themeForeground;
             _themeBackground = themeBackground;
+            _ignoreNextEscape = ignoreFirstEscape;
 
             // Initialize text handling utilities
             _textUtils = new TextHandlingUtils(font);
@@ -65,7 +69,7 @@ namespace WonderGame.Screens
             // Initialize command processor
             _commandProcessor = new CommandProcessor(
                 _textUtils.QueueOutput,
-                () => new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", _previousKeyboardState, this)
+                () => new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", this, _previousKeyboardState)
             );
 
             // SIMSYS boot lines displayed after the main boot sequence - queue for typewriter effect
@@ -85,6 +89,34 @@ namespace WonderGame.Screens
             _previousMouseState = Mouse.GetState();
         }
 
+        // Constructor for preserving state when returning from other screens
+        public MainScreen(GraphicsDevice graphicsDevice, SpriteFont font, Color themeBackground, Color themeForeground, 
+                         List<string> existingHistory, List<string> existingCommandHistory, bool ignoreFirstEscape = false)
+        {
+            _graphicsDevice = graphicsDevice;
+            _font = font;
+            _themeForeground = themeForeground;
+            _themeBackground = themeBackground;
+            _ignoreNextEscape = ignoreFirstEscape;
+
+            // Initialize text handling utilities
+            _textUtils = new TextHandlingUtils(font);
+            _textUtils.LineCompleted += OnLineCompleted;
+
+            // Initialize command processor
+            _commandProcessor = new CommandProcessor(
+                _textUtils.QueueOutput,
+                () => new IsometricScreen(_graphicsDevice, _font, _themeBackground, _themeForeground, "room_1", this, _previousKeyboardState)
+            );
+
+            // Restore existing history
+            _history.AddRange(existingHistory);
+            _commandHistory.AddRange(existingCommandHistory);
+            
+            _previousKeyboardState = Keyboard.GetState();
+            _previousMouseState = Mouse.GetState();
+        }
+
         public IScreen? GetNextScreen()
         {
             return _nextScreen;
@@ -93,6 +125,17 @@ namespace WonderGame.Screens
         public void AddLogEntry(string logEntry)
         {
             _textUtils.QueueOutput(logEntry);
+        }
+
+        // Methods to access history for state preservation
+        public List<string> GetHistory()
+        {
+            return new List<string>(_history);
+        }
+
+        public List<string> GetCommandHistory()
+        {
+            return new List<string>(_commandHistory);
         }
 
         private void OnLineCompleted(string line)
@@ -113,8 +156,15 @@ namespace WonderGame.Screens
             {
                 if (keyboardState.IsKeyDown(Keys.Escape) && !_previousKeyboardState.IsKeyDown(Keys.Escape))
                 {
-                    _currentState = ScreenState.ConfirmingQuit;
-                    _selectedQuitOption = 0; // Default to Confirm
+                    if (_ignoreNextEscape)
+                    {
+                        _ignoreNextEscape = false; // Reset the flag
+                    }
+                    else
+                    {
+                        _currentState = ScreenState.ConfirmingQuit;
+                        _selectedQuitOption = 0; // Default to Confirm
+                    }
                 }
                 else
                 {
